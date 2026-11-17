@@ -51,10 +51,22 @@ final class IncomePlan {
     /// One-time extras for the whole season (bonuses, signing pay, etc.).
     var oneTimeBonuses: Double = 0
 
+    // Year budget: what happens to the money once it's earned.
+    var allowancePerWeek: Double = 15
+    var spendingPerWeek: Double = 45
+    var gasPerTwoWeeks: Double = 50
+    var savingsGoal: Double = 1600
+    var startingMoney: Double = 0
+    /// Share of pay withheld for taxes, 0...1.
+    var taxRate: Double = 0
+    /// Yearly growth, 0...1.
+    var stockReturn: Double = 0.07
+    var savingsReturn: Double = 0.02
+
     init(
-        hoursPerWeek: Double = 30,
-        hourlyWage: Double = 15,
-        weeksInSeason: Double = 12,
+        hoursPerWeek: Double = 29.5,
+        hourlyWage: Double = 20,
+        weeksInSeason: Double = 13,
         totalTargetOverride: Double = 0,
         updatedAt: Date = .now
     ) {
@@ -94,6 +106,48 @@ final class IncomePlan {
 
     var usesOverride: Bool {
         totalTargetOverride > 0
+    }
+
+    /// The plan's numbers for the year math.
+    var inputs: PlanInputs {
+        PlanInputs(
+            hourlyWage: hourlyWage,
+            hoursPerWeek: hoursPerWeek,
+            weeksOfWork: weeksInSeason,
+            extraPerWeek: overtimeHoursPerWeek * hourlyWage * overtimeMultiplier + tipsPerWeek,
+            oneTimeBonuses: oneTimeBonuses,
+            jobTotalOverride: totalTargetOverride,
+            taxRate: taxRate,
+            allowancePerWeek: allowancePerWeek,
+            spendingPerWeek: spendingPerWeek,
+            gasPerTwoWeeks: gasPerTwoWeeks,
+            savingsGoal: savingsGoal,
+            startingMoney: startingMoney,
+            stockReturn: stockReturn,
+            savingsReturn: savingsReturn
+        )
+    }
+
+    var yearPlan: YearPlan { YearPlan(inputs) }
+
+    /// Saves the what-if values the Year plan screen lets you change.
+    func applyWhatIf(_ draft: PlanInputs) {
+        hourlyWage = draft.hourlyWage
+        hoursPerWeek = draft.hoursPerWeek
+        if draft.weeksOfWork != weeksInSeason {
+            // Typed-in weeks replace the date range, or the dates would recalculate it on the next save.
+            weeksInSeason = draft.weeksOfWork
+            usesSeasonDates = false
+        }
+        spendingPerWeek = draft.spendingPerWeek
+        savingsGoal = draft.savingsGoal
+        stockReturn = draft.stockReturn
+        updatedAt = .now
+    }
+
+    /// Start of the work season, used to number weeks.
+    func weekNumberingStart(firstPaycheck: Date?) -> Date {
+        usesSeasonDates ? seasonStart : (firstPaycheck ?? .now)
     }
 }
 

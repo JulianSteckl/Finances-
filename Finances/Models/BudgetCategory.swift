@@ -16,6 +16,8 @@ enum AllocationMode: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+/// Legacy v1 custom bucket. No longer shown (the plan now uses the four fixed `Bucket`s),
+/// but kept in the schema so data saved by v1 still opens.
 @Model
 final class BudgetCategory {
     var name: String

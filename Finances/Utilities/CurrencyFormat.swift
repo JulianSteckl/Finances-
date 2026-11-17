@@ -7,6 +7,21 @@ enum MoneyFormat {
     static func string(_ value: Double) -> String {
         value.formatted(currency)
     }
+
+    /// Rounded to the dollar, for big summary numbers.
+    static func whole(_ value: Double) -> String {
+        value.formatted(currency.precision(.fractionLength(0)))
+    }
+
+    /// "+$590.00" or "−$12.50".
+    static func signed(_ value: Double) -> String {
+        (value < 0 ? "−" : "+") + string(abs(value))
+    }
+
+    /// "$1.5k" style, for chart axes.
+    static func compact(_ value: Double) -> String {
+        value >= 1000 ? "$" + (value / 1000).formatted(.number.precision(.fractionLength(0...1))) + "k" : whole(value)
+    }
 }
 
 extension Color {

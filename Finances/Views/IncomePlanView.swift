@@ -26,6 +26,18 @@ struct IncomePlanView: View {
     @State private var useOverride = false
     @State private var totalTargetOverride: Double = 0
 
+    // Year budget (rates are edited as percents)
+    @State private var allowancePerWeek: Double = 15
+    @State private var spendingPerWeek: Double = 45
+    @State private var gasPerTwoWeeks: Double = 50
+    @State private var savingsGoal: Double = 1600
+    @State private var startingMoney: Double = 0
+    @State private var taxPercent: Double = 0
+    @State private var stockReturnPercent: Double = 7
+    @State private var savingsReturnPercent: Double = 2
+
+    private static let percentScale: Double = 100
+
     /// Weeks used for every calculation: derived from the dates when enabled, otherwise typed in.
     private var effectiveWeeks: Double {
         usesSeasonDates ? IncomeBreakdown.weeks(from: seasonStart, to: seasonEnd) : weeksInSeason.clampedNonNegative
@@ -49,18 +61,13 @@ struct IncomePlanView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Income plan")
-                        .font(.largeTitle.weight(.semibold))
-                    Text("Estimate what you expect to earn this summer from your schedule, wage, overtime, and extras — or set a total target.")
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                PageHeader(eyebrow: "Your schedule, pay and budget. Changes save when you leave this screen.", title: "Plan settings")
 
                 seasonSection
                 hoursSection
                 extrasSection
                 targetSection
+                budgetSection
                 breakdownSection
 
                 HStack {
@@ -73,22 +80,24 @@ struct IncomePlanView: View {
                     Button("Save plan") {
                         save()
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(PrimaryButtonStyle())
                     .keyboardShortcut(.defaultAction)
                 }
 
                 GroupBox("How it’s used") {
-                    Text("Allocations split this planned income into buckets. Tracking compares actual paychecks and spending against the plan.")
+                    Text("Gas, spending and savings get fixed amounts. Stocks gets whatever is left. Each paycheck is split by those shares on the Overview checklist.")
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.vertical, 4)
                 }
             }
-            .padding(28)
+            .padding(Theme.pagePadding)
             .frame(maxWidth: 760, alignment: .leading)
         }
-        .navigationTitle("Income Plan")
+        .background(Theme.background)
+        .navigationTitle("Plan settings")
         .onAppear(perform: load)
+        .onDisappear(perform: save)
         .onChange(of: plan?.updatedAt) { _, _ in
             load()
         }
@@ -205,6 +214,42 @@ struct IncomePlanView: View {
         }
     }
 
+    private var budgetSection: some View {
+        GroupBox("Year budget") {
+            VStack(alignment: .leading, spacing: 14) {
+                moneyField("Allowance per week", value: $allowancePerWeek)
+                moneyField("Spending per week", value: $spendingPerWeek)
+                moneyField("Gas every two weeks", value: $gasPerTwoWeeks)
+                moneyField("Savings goal", value: $savingsGoal, note: "for the school year")
+                moneyField("Starting money", value: $startingMoney, note: "goes into Stocks")
+                percentField("Tax withheld", value: $taxPercent)
+                percentField("Stock return per year", value: $stockReturnPercent)
+                percentField("Savings reward per year", value: $savingsReturnPercent)
+            }
+            .padding(.vertical, 8)
+        }
+    }
+
+    private func moneyField(_ title: String, value: Binding<Double>, note: String? = nil) -> some View {
+        labeledField(title) {
+            TextField("0", value: value, format: .currency(code: currencyCode))
+                .textFieldStyle(.roundedBorder)
+                .frame(maxWidth: 140)
+            if let note {
+                Text(note).foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func percentField(_ title: String, value: Binding<Double>) -> some View {
+        labeledField(title) {
+            TextField("0", value: value, format: .number)
+                .textFieldStyle(.roundedBorder)
+                .frame(maxWidth: 80)
+            Text("%").foregroundStyle(.secondary)
+        }
+    }
+
     private var breakdownSection: some View {
         GroupBox("Breakdown") {
             VStack(alignment: .leading, spacing: 16) {
@@ -309,6 +354,14 @@ struct IncomePlanView: View {
         oneTimeBonuses = plan.oneTimeBonuses
         useOverride = plan.usesOverride
         totalTargetOverride = plan.totalTargetOverride
+        allowancePerWeek = plan.allowancePerWeek
+        spendingPerWeek = plan.spendingPerWeek
+        gasPerTwoWeeks = plan.gasPerTwoWeeks
+        savingsGoal = plan.savingsGoal
+        startingMoney = plan.startingMoney
+        taxPercent = plan.taxRate * Self.percentScale
+        stockReturnPercent = plan.stockReturn * Self.percentScale
+        savingsReturnPercent = plan.savingsReturn * Self.percentScale
     }
 
     private func save() {
@@ -331,7 +384,15 @@ struct IncomePlanView: View {
         target.tipsPerWeek = tipsPerWeek.clampedNonNegative
         target.oneTimeBonuses = oneTimeBonuses.clampedNonNegative
         target.totalTargetOverride = useOverride ? totalTargetOverride.clampedNonNegative : 0
+        target.allowancePerWeek = allowancePerWeek.clampedNonNegative
+        target.spendingPerWeek = spendingPerWeek.clampedNonNegative
+        target.gasPerTwoWeeks = gasPerTwoWeeks.clampedNonNegative
+        target.savingsGoal = savingsGoal.clampedNonNegative
+        target.startingMoney = startingMoney.clampedNonNegative
+        target.taxRate = min(1, taxPercent.clampedNonNegative / Self.percentScale)
+        target.stockReturn = stockReturnPercent / Self.percentScale
+        target.savingsReturn = savingsReturnPercent / Self.percentScale
         target.updatedAt = .now
-        try? modelContext.save()
+        modelContext.saveChanges()
     }
 }

@@ -14,11 +14,15 @@
 		A10100000000000000000005 /* MoneyEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000005 /* MoneyEntry.swift */; };
 		A10100000000000000000006 /* OverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000006 /* OverviewView.swift */; };
 		A10100000000000000000007 /* IncomePlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000007 /* IncomePlanView.swift */; };
-		A10100000000000000000008 /* AllocationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000008 /* AllocationsView.swift */; };
-		A10100000000000000000009 /* TrackingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000009 /* TrackingView.swift */; };
+		A10100000000000000000008 /* YearPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000008 /* YearPlanView.swift */; };
+		A10100000000000000000009 /* PaychecksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000009 /* PaychecksView.swift */; };
 		A1010000000000000000000A /* CurrencyFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1010000000000000000000A /* CurrencyFormat.swift */; };
 		A1010000000000000000000B /* SeedData.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1010000000000000000000B /* SeedData.swift */; };
 		A1010000000000000000000C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B1010000000000000000000C /* Assets.xcassets */; };
+		A1010000000000000000000E /* Bucket.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1010000000000000000000E /* Bucket.swift */; };
+		A1010000000000000000000F /* PlanMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1010000000000000000000F /* PlanMath.swift */; };
+		A10100000000000000000010 /* Ledger.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000010 /* Ledger.swift */; };
+		A10100000000000000000011 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000011 /* Theme.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,12 +34,16 @@
 		B10100000000000000000005 /* MoneyEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoneyEntry.swift; sourceTree = "<group>"; };
 		B10100000000000000000006 /* OverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewView.swift; sourceTree = "<group>"; };
 		B10100000000000000000007 /* IncomePlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncomePlanView.swift; sourceTree = "<group>"; };
-		B10100000000000000000008 /* AllocationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllocationsView.swift; sourceTree = "<group>"; };
-		B10100000000000000000009 /* TrackingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackingView.swift; sourceTree = "<group>"; };
+		B10100000000000000000008 /* YearPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YearPlanView.swift; sourceTree = "<group>"; };
+		B10100000000000000000009 /* PaychecksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaychecksView.swift; sourceTree = "<group>"; };
 		B1010000000000000000000A /* CurrencyFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyFormat.swift; sourceTree = "<group>"; };
 		B1010000000000000000000B /* SeedData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeedData.swift; sourceTree = "<group>"; };
 		B1010000000000000000000C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B1010000000000000000000D /* Finances.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Finances.entitlements; sourceTree = "<group>"; };
+		B1010000000000000000000E /* Bucket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bucket.swift; sourceTree = "<group>"; };
+		B1010000000000000000000F /* PlanMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanMath.swift; sourceTree = "<group>"; };
+		B10100000000000000000010 /* Ledger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ledger.swift; sourceTree = "<group>"; };
+		B10100000000000000000011 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -85,6 +93,7 @@
 				B10100000000000000000003 /* IncomePlan.swift */,
 				B10100000000000000000004 /* BudgetCategory.swift */,
 				B10100000000000000000005 /* MoneyEntry.swift */,
+				B1010000000000000000000E /* Bucket.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -94,8 +103,8 @@
 			children = (
 				B10100000000000000000006 /* OverviewView.swift */,
 				B10100000000000000000007 /* IncomePlanView.swift */,
-				B10100000000000000000008 /* AllocationsView.swift */,
-				B10100000000000000000009 /* TrackingView.swift */,
+				B10100000000000000000008 /* YearPlanView.swift */,
+				B10100000000000000000009 /* PaychecksView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -105,6 +114,9 @@
 			children = (
 				B1010000000000000000000A /* CurrencyFormat.swift */,
 				B1010000000000000000000B /* SeedData.swift */,
+				B10100000000000000000011 /* Theme.swift */,
+				B10100000000000000000010 /* Ledger.swift */,
+				B1010000000000000000000F /* PlanMath.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -185,10 +197,14 @@
 				A10100000000000000000005 /* MoneyEntry.swift in Sources */,
 				A10100000000000000000006 /* OverviewView.swift in Sources */,
 				A10100000000000000000007 /* IncomePlanView.swift in Sources */,
-				A10100000000000000000008 /* AllocationsView.swift in Sources */,
-				A10100000000000000000009 /* TrackingView.swift in Sources */,
+				A10100000000000000000008 /* YearPlanView.swift in Sources */,
+				A10100000000000000000009 /* PaychecksView.swift in Sources */,
 				A1010000000000000000000A /* CurrencyFormat.swift in Sources */,
 				A1010000000000000000000B /* SeedData.swift in Sources */,
+				A10100000000000000000011 /* Theme.swift in Sources */,
+				A10100000000000000000010 /* Ledger.swift in Sources */,
+				A1010000000000000000000F /* PlanMath.swift in Sources */,
+				A1010000000000000000000E /* Bucket.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
