@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-import Charts
 
 struct PaychecksView: View {
     @Environment(\.modelContext) private var modelContext
@@ -10,18 +9,21 @@ struct PaychecksView: View {
     @State private var pendingDelete: MoneyEntry?
 
     var body: some View {
-        let inputs = plan?.inputs ?? .base
-        let yearPlan = YearPlan(inputs)
-        let paidByWeek = ledger.weeklyPay(from: plan?.weekNumberingStart(firstPaycheck: ledger.paychecks.first?.date) ?? .now)
+        let context = MoneyContext(plan: plan, ledger: ledger)
         return ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 PageHeader(eyebrow: "Log a paycheck, purchase, gas fill-up or allowance", title: "Paychecks & log")
                     .appearEffect(order: 0)
                 // The form keeps its own state, so typing only redraws the form and its split preview.
-                NewEntrySection(inputs: inputs, yearPlan: yearPlan, spentThisWeek: ledger.spentThisWeek, gasBalance: ledger.balance(of: .gas))
-                    .appearEffect(order: 1)
-                PayForecastCard(yearPlan: yearPlan, paidByWeek: paidByWeek).appearEffect(order: 2)
-                logCard.appearEffect(order: 3)
+                NewEntrySection(
+                    inputs: context.inputs, yearPlan: context.yearPlan,
+                    spendingLeft: context.spendingWeek.left, gasBalance: ledger.balance(of: .gas)
+                )
+                .appearEffect(order: 1)
+                LogCard(entries: ledger.entries) { pendingDelete = $0 }
+                    .appearEffect(order: 2)
+                SummerPayCard(context: context)
+                    .appearEffect(order: 3)
             }
             .padding(Theme.pagePadding)
         }
@@ -38,35 +40,9 @@ struct PaychecksView: View {
         }
     }
 
-    private var logCard: some View {
-        LazyVStack(alignment: .leading, spacing: 6) {
-            CardTitle(title: "Log", trailing: "\(ledger.entries.count) entries")
-            if ledger.entries.isEmpty {
-                EmptyHint(text: "Nothing logged yet.")
-            }
-            ForEach(ledger.entries) { entry in
-                Divider()
-                HStack(spacing: 8) {
-                    EntryRow(entry: entry)
-                    Button {
-                        pendingDelete = entry
-                    } label: {
-                        Image(systemName: "trash")
-                    }
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(Theme.muted)
-                    .help("Delete entry")
-                    .accessibilityLabel("Delete \(entry.title)")
-                }
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
-        .card()
-    }
-
     private func delete(_ entry: MoneyEntry) {
         if entry.kind == .paycheck {
-            // Checklist moves belong to their paycheck, so they go with it.
+            // Older checklist moves tied to this paycheck go with it.
             ledger.transfers(from: entry).forEach(modelContext.delete)
         }
         modelContext.delete(entry)
@@ -75,12 +51,14 @@ struct PaychecksView: View {
     }
 }
 
+// MARK: - New entry
+
 /// The "New entry" form and its live split preview.
 struct NewEntrySection: View {
     @Environment(\.modelContext) private var modelContext
     let inputs: PlanInputs
     let yearPlan: YearPlan
-    let spentThisWeek: Double
+    let spendingLeft: Double
     let gasBalance: Double
 
     @State private var kind: EntryKind = .paycheck
@@ -148,9 +126,9 @@ struct NewEntrySection: View {
             let perHour = hours > 0 ? MoneyFormat.string(amount / hours) : "—"
             return "Works out to \(perHour) an hour (plan: \(MoneyFormat.string(inputs.hourlyWage)))"
         case .spending:
-            return "Left this week after this: \(MoneyFormat.string(inputs.spendingPerWeek - spentThisWeek - amount))"
+            return "Left this week after this: \(MoneyFormat.string(spendingLeft - amount))"
         case .gas:
-            return "Gas pot after this: \(MoneyFormat.string(gasBalance - amount))"
+            return "Gas bucket after this: \(MoneyFormat.string(gasBalance - amount))"
         case .allowance, .transfer:
             return "Goes straight into Spending"
         }
@@ -196,14 +174,15 @@ struct SplitPreviewCard: View {
         let shares = yearPlan.paycheckShares
         let split = yearPlan.split(paycheck: amount)
         return VStack(alignment: .leading, spacing: 14) {
-            CardTitle(title: "Move your money", trailing: "Split of \(MoneyFormat.string(amount))")
+            CardTitle(title: "How this paycheck splits", trailing: MoneyFormat.string(amount))
             BucketSplitBar(shares: shares, height: 14)
             LazyVGrid(columns: columns, spacing: 10) {
                 ForEach(Bucket.allCases) { bucket in
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(spacing: 6) {
                             BucketDot(bucket: bucket)
-                            Text("\(bucket.name) · \(((shares[bucket] ?? 0) * 100).formatted(.number.precision(.fractionLength(1))))%").animatedNumber(shares[bucket] ?? 0)
+                            Text("\(bucket.name) · \(((shares[bucket] ?? 0) * 100).formatted(.number.precision(.fractionLength(1))))%")
+                                .animatedNumber(shares[bucket] ?? 0)
                         }
                         .font(.caption.weight(.semibold)).foregroundStyle(Theme.muted)
                         Text(MoneyFormat.string(split[bucket] ?? 0)).font(.system(size: 20, weight: .bold)).monospacedDigit()
@@ -215,88 +194,269 @@ struct SplitPreviewCard: View {
                     .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Theme.line))
                 }
             }
-            Text("Shares come from your plan, so every paycheck fills each bucket by the same percentage. Allowance goes straight to Spending.")
+            Text("Shares come from your plan. The Overview's \"Move your money\" list adds up every paycheck for you.")
                 .font(.caption).foregroundStyle(Theme.muted)
         }
         .card()
     }
 }
 
-struct PayForecastCard: View {
-    let yearPlan: YearPlan
-    let paidByWeek: [Double]
+// MARK: - Log
 
-    private struct Point: Identifiable {
-        let line: String
-        let week: Double
-        let total: Double
-        var id: String { "\(line)-\(week)" }
-    }
+/// The full log, filtered, searchable and folded by month so it stays short as it grows.
+struct LogCard: View {
+    let entries: [MoneyEntry]
+    let onDelete: (MoneyEntry) -> Void
 
-    private var forecast: PayForecast {
-        PayForecast(paid: paidByWeek, expectedPerWeek: yearPlan.weeklyPay, totalWeeks: yearPlan.inputs.weeksOfWork)
-    }
+    @State private var filter: LogFilter = .all
+    @State private var search = ""
+    @State private var expanded: Set<String> = []
+    @State private var didOpenNewest = false
 
-    private var points: [Point] {
-        var result = [Point(line: "Base plan", week: 0, total: 0),
-                      Point(line: "Base plan", week: yearPlan.inputs.weeksOfWork, total: yearPlan.jobTotal)]
-        var running = 0.0
-        result.append(Point(line: "Earned", week: 0, total: 0))
-        for (index, pay) in paidByWeek.enumerated() {
-            running += pay
-            result.append(Point(line: "Earned", week: Double(index + 1), total: running))
+    enum LogFilter: String, CaseIterable, Identifiable {
+        case all, paychecks, spending, gas, allowance, moves
+        var id: String { rawValue }
+
+        var label: String {
+            switch self {
+            case .all: "All"
+            case .paychecks: "Paychecks"
+            case .spending: "Spending"
+            case .gas: "Gas"
+            case .allowance: "Allowance"
+            case .moves: "Moves"
+            }
         }
-        result.append(Point(line: "Forecast", week: forecast.weeksWorked, total: running))
-        result.append(Point(line: "Forecast", week: max(forecast.weeksWorked, yearPlan.inputs.weeksOfWork), total: forecast.projectedTotal))
+
+        func matches(_ kind: EntryKind) -> Bool {
+            switch self {
+            case .all: true
+            case .paychecks: kind == .paycheck
+            case .spending: kind == .spending
+            case .gas: kind == .gas
+            case .allowance: kind == .allowance
+            case .moves: kind == .transfer
+            }
+        }
+    }
+
+    struct MonthGroup: Identifiable {
+        let id: String
+        let title: String
+        var entries: [MoneyEntry]
+        var moneyIn: Double
+        var moneyOut: Double
+    }
+
+    private var isSearching: Bool { !search.trimmingCharacters(in: .whitespaces).isEmpty }
+
+    private var filtered: [MoneyEntry] {
+        let query = search.trimmingCharacters(in: .whitespaces).lowercased()
+        return entries.filter { entry in
+            guard filter.matches(entry.kind) else { return false }
+            guard !query.isEmpty else { return true }
+            let haystack = [entry.title, entry.kind.label, entry.bucket?.name ?? "", MoneyFormat.string(entry.amount),
+                            entry.date.formatted(date: .abbreviated, time: .omitted)].joined(separator: " ").lowercased()
+            return haystack.contains(query)
+        }
+    }
+
+    /// Entries are already newest first, so months come out newest first too.
+    private func groups(of items: [MoneyEntry]) -> [MonthGroup] {
+        let calendar = Calendar.current
+        var result: [MonthGroup] = []
+        for entry in items {
+            let parts = calendar.dateComponents([.year, .month], from: entry.date)
+            let key = "\(parts.year ?? 0)-\(parts.month ?? 0)"
+            if result.last?.id != key {
+                result.append(MonthGroup(id: key, title: entry.date.formatted(.dateTime.month(.wide).year()), entries: [], moneyIn: 0, moneyOut: 0))
+            }
+            result[result.count - 1].entries.append(entry)
+            if entry.kind.isIncome { result[result.count - 1].moneyIn += entry.amount }
+            if entry.kind == .spending || entry.kind == .gas { result[result.count - 1].moneyOut += entry.amount }
+        }
         return result
     }
 
     var body: some View {
-        let difference = forecast.projectedTotal - yearPlan.jobTotal
-        return VStack(alignment: .leading, spacing: 12) {
-            CardTitle(title: "Pay forecast")
-            ResponsiveRow(minWideWidth: 600, leadingWeight: 2.4) {
-                chart
-            } trailing: {
-                VStack(alignment: .leading, spacing: 12) {
-                    stat("Weekly estimate", MoneyFormat.string(forecast.weeklyEstimate), "(earned + 3 × base week) ÷ (weeks + 3)")
-                    stat("Projected summer pay", MoneyFormat.whole(forecast.projectedTotal),
-                         "\(MoneyFormat.whole(forecast.earned)) earned in \(Int(forecast.weeksWorked)) weeks")
-                    stat("Versus base plan", (difference >= 0 ? "+" : "−") + MoneyFormat.whole(abs(difference)),
-                         difference >= 0 ? "On track for the \(MoneyFormat.whole(yearPlan.jobTotal)) plan" : "Stocks get a little less this year")
+        let items = filtered
+        let months = groups(of: items)
+        return VStack(alignment: .leading, spacing: 10) {
+            CardTitle(title: "Log", trailing: items.count == entries.count ? "\(entries.count) entries" : "\(items.count) of \(entries.count) entries")
+            controls(months: months)
+            if months.isEmpty {
+                EmptyHint(text: entries.isEmpty ? "Nothing logged yet." : "Nothing matches that filter.")
+            }
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(months) { month in
+                    monthHeader(month)
+                    if isSearching || expanded.contains(month.id) {
+                        ForEach(month.entries) { entry in
+                            entryRow(entry)
+                        }
+                    }
                 }
             }
         }
         .card()
+        .onAppear {
+            guard !didOpenNewest, let newest = months.first else { return }
+            expanded.insert(newest.id)
+            didOpenNewest = true
+        }
     }
 
-    private var chart: some View {
-        Chart(points) { point in
-            LineMark(x: .value("Week", point.week), y: .value("Total", point.total), series: .value("Line", point.line))
-                .foregroundStyle(point.line == "Base plan" ? Theme.muted : Theme.ink)
-                .lineStyle(StrokeStyle(lineWidth: point.line == "Base plan" ? 1.5 : 2.5, dash: point.line == "Forecast" ? [6, 4] : []))
-        }
-        .chartXScale(domain: 0...max(1, yearPlan.inputs.weeksOfWork))
-        .chartYAxis {
-            AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) { value in
-                AxisGridLine().foregroundStyle(Theme.line)
-                AxisValueLabel { Text(MoneyFormat.compact(value.as(Double.self) ?? 0)) }
+    private func controls(months: [MonthGroup]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                HStack(spacing: 6) {
+                    Image(systemName: "magnifyingglass").foregroundStyle(Theme.muted)
+                    TextField("Search the log", text: $search).textFieldStyle(.plain)
+                    if isSearching {
+                        Button { search = "" } label: { Image(systemName: "xmark.circle.fill") }
+                            .buttonStyle(.plain).foregroundStyle(Theme.muted)
+                            .accessibilityLabel("Clear search")
+                    }
+                }
+                .padding(.horizontal, 10)
+                .frame(height: 30)
+                .background(Theme.chip, in: RoundedRectangle(cornerRadius: 8))
+                .frame(maxWidth: 280)
+                Spacer()
+                let allOpen = !months.isEmpty && months.allSatisfy { expanded.contains($0.id) }
+                Button(allOpen ? "Collapse all" : "Expand all") {
+                    withAnimation(Motion.quick) {
+                        expanded = allOpen ? [] : Set(months.map(\.id))
+                    }
+                }
+                .buttonStyle(.link)
+                .disabled(months.isEmpty || isSearching)
             }
-        }
-        .chartXAxis {
-            AxisMarks(values: .automatic(desiredCount: 5)) { value in
-                AxisValueLabel { Text("Wk \(Int(value.as(Double.self) ?? 0))") }
+            Picker("Show", selection: $filter.animation(Motion.quick)) {
+                ForEach(LogFilter.allCases) { Text($0.label).tag($0) }
             }
+            .pickerStyle(.segmented)
+            .labelsHidden()
         }
-        .frame(height: 210)
-        .accessibilityLabel("Total pay so far, the forecast, and the base plan")
     }
 
-    private func stat(_ label: String, _ value: String, _ footnote: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label).font(.caption.weight(.semibold)).foregroundStyle(Theme.muted)
-            Text(value).font(.system(size: 20, weight: .bold)).monospacedDigit().animatedNumber(value)
-            Text(footnote).font(.caption).foregroundStyle(Theme.muted).animatedNumber(footnote)
+    private func monthHeader(_ month: MonthGroup) -> some View {
+        let open = isSearching || expanded.contains(month.id)
+        return Button {
+            withAnimation(Motion.quick) {
+                if expanded.contains(month.id) { expanded.remove(month.id) } else { expanded.insert(month.id) }
+            }
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.bold))
+                    .rotationEffect(.degrees(open ? 90 : 0))
+                    .foregroundStyle(Theme.muted)
+                Text(month.title).fontWeight(.semibold)
+                Text("\(month.entries.count)").font(.caption).foregroundStyle(Theme.muted)
+                Spacer()
+                Text("In \(MoneyFormat.string(month.moneyIn))").font(.caption).foregroundStyle(Theme.muted).animatedNumber(month.moneyIn)
+                Text("Out \(MoneyFormat.string(month.moneyOut))").font(.caption).foregroundStyle(Theme.muted).animatedNumber(month.moneyOut)
+            }
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isSearching)
+        .accessibilityLabel("\(month.title), \(month.entries.count) entries")
+        .accessibilityValue(open ? "Expanded" : "Collapsed")
+    }
+
+    private func entryRow(_ entry: MoneyEntry) -> some View {
+        VStack(spacing: 0) {
+            Divider()
+            HStack(spacing: 8) {
+                EntryRow(entry: entry)
+                Button {
+                    onDelete(entry)
+                } label: {
+                    Image(systemName: "trash")
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(Theme.muted)
+                .help("Delete entry")
+                .accessibilityLabel("Delete \(entry.title)")
+            }
+            .padding(.leading, 20)
+        }
+        .transition(.opacity.combined(with: .move(edge: .top)))
+    }
+}
+
+// MARK: - Summer pay
+
+/// How summer pay is going, as one bar and one plain sentence.
+struct SummerPayCard: View {
+    let context: MoneyContext
+    @State private var reveal: Double = 0
+
+    var body: some View {
+        let forecast = context.forecast
+        let plan = context.yearPlan.jobTotal
+        return VStack(alignment: .leading, spacing: 14) {
+            CardTitle(title: "Summer pay")
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(MoneyFormat.whole(forecast.earned)).font(.system(size: 26, weight: .bold)).monospacedDigit().animatedNumber(forecast.earned)
+                Text("earned of your \(MoneyFormat.whole(plan)) plan").foregroundStyle(Theme.muted)
+            }
+            paceBar(earned: forecast.earned, projected: forecast.projectedTotal, plan: plan)
+            HStack(spacing: 16) {
+                key(Theme.ink, "Earned")
+                key(Theme.muted.opacity(0.3), "Still to come at your pace")
+                HStack(spacing: 5) {
+                    Rectangle().fill(Theme.ink).frame(width: 2, height: 12)
+                    Text("Plan")
+                }
+            }
+            .font(.caption).foregroundStyle(Theme.muted)
+            Text(explanation).fixedSize(horizontal: false, vertical: true).animatedNumber(forecast.projectedTotal)
+        }
+        .card()
+        .revealOnAppear($reveal)
+    }
+
+    private var explanation: String {
+        let forecast = context.forecast
+        guard forecast.weeksWorked > 0 else {
+            return "Log your first paycheck and this shows whether you're on pace for your plan."
+        }
+        let difference = forecast.projectedTotal - context.yearPlan.jobTotal
+        let weeksLeft = Int(forecast.weeksLeft.rounded())
+        let pace = "You're making about \(MoneyFormat.whole(forecast.weeklyEstimate)) a week. With \(weeksLeft) week\(weeksLeft == 1 ? "" : "s") left, that's about \(MoneyFormat.whole(forecast.projectedTotal)) for the summer"
+        if abs(difference) < 1 { return pace + ", right on plan." }
+        return pace + ", \(MoneyFormat.whole(abs(difference))) \(difference > 0 ? "more" : "less") than planned. Spending and Stocks adjust to match."
+    }
+
+    private func paceBar(earned: Double, projected: Double, plan: Double) -> some View {
+        let scaleMax = max(1, max(plan, projected))
+        return GeometryReader { proxy in
+            let width = proxy.size.width
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 6).fill(Theme.chip)
+                RoundedRectangle(cornerRadius: 6).fill(Theme.muted.opacity(0.3))
+                    .frame(width: width * min(1, projected / scaleMax) * reveal)
+                RoundedRectangle(cornerRadius: 6).fill(Theme.ink)
+                    .frame(width: width * min(1, earned / scaleMax) * reveal)
+                Rectangle().fill(Theme.ink)
+                    .frame(width: 2, height: 24)
+                    .offset(x: max(0, min(width - 2, width * plan / scaleMax - 1)))
+            }
+        }
+        .frame(height: 16)
+        .animation(Motion.smooth, value: projected)
+        .accessibilityElement()
+        .accessibilityLabel("Earned \(MoneyFormat.whole(earned)), on pace for \(MoneyFormat.whole(projected)), plan \(MoneyFormat.whole(plan))")
+    }
+
+    private func key(_ color: Color, _ label: String) -> some View {
+        HStack(spacing: 5) {
+            RoundedRectangle(cornerRadius: 2).fill(color).frame(width: 10, height: 10)
+            Text(label)
         }
     }
 }

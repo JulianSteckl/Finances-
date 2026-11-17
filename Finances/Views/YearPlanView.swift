@@ -8,10 +8,26 @@ struct YearPlanView: View {
     let plan: IncomePlan?
 
     @State private var draft: PlanInputs = .base
+    @State private var showSaved = false
+
+    private static let savedBadgeSeconds: Double = 2
 
     private var saved: PlanInputs { plan?.inputs ?? .base }
     private var yearPlan: YearPlan { YearPlan(draft) }
     private var isDraftChanged: Bool { draft != saved }
+
+    /// The draft with every slider put back to the base plan; other settings stay as they are.
+    private var baseDraft: PlanInputs {
+        var reset = draft
+        let base = PlanInputs.base
+        reset.hourlyWage = base.hourlyWage
+        reset.hoursPerWeek = base.hoursPerWeek
+        reset.weeksOfWork = base.weeksOfWork
+        reset.spendingPerWeek = base.spendingPerWeek
+        reset.savingsGoal = base.savingsGoal
+        reset.stockReturn = base.stockReturn
+        return reset
+    }
 
     var body: some View {
         ScrollView {
@@ -48,11 +64,21 @@ struct YearPlanView: View {
 
     private var header: some View {
         HStack(alignment: .bottom, spacing: 10) {
-            PageHeader(eyebrow: isDraftChanged ? "What-if · not saved yet" : "Your plan · 52 weeks", title: "Year plan")
+            PageHeader(eyebrow: isDraftChanged ? "What-if · not saved yet. Move a slider, then save or undo." : "Your saved plan · move a slider to try a what-if", title: "Year plan")
             Spacer()
-            Button("Reset") { withAnimation(Motion.smooth) { draft = saved } }
+            if showSaved {
+                Label("Saved", systemImage: "checkmark.circle.fill")
+                    .fontWeight(.semibold)
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+            }
+            Button("Undo changes") { withAnimation(Motion.smooth) { draft = saved } }
                 .buttonStyle(SecondaryButtonStyle())
                 .disabled(!isDraftChanged)
+                .help("Go back to your saved plan")
+            Button("Reset to base plan") { withAnimation(Motion.smooth) { draft = baseDraft } }
+                .buttonStyle(SecondaryButtonStyle())
+                .disabled(draft == baseDraft)
+                .help("$20/hr, 29.5 hrs, 13 weeks, $45 spending, $1,600 savings, 7% stocks")
             Button("Save as my plan", action: saveDraft)
                 .buttonStyle(PrimaryButtonStyle())
                 .disabled(!isDraftChanged || plan == nil)
@@ -74,8 +100,14 @@ struct YearPlanView: View {
     }
 
     private func saveDraft() {
-        plan?.applyWhatIf(draft)
+        guard let plan else { return }
+        plan.applyWhatIf(draft)
         modelContext.saveChanges()
+        withAnimation(Motion.quick) { showSaved = true }
+        Task {
+            try? await Task.sleep(for: .seconds(Self.savedBadgeSeconds))
+            withAnimation(Motion.smooth) { showSaved = false }
+        }
     }
 
     static func percent(_ rate: Double) -> String {

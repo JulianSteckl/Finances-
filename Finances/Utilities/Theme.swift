@@ -316,27 +316,38 @@ struct SplitRowLayout: Layout {
 
 struct PrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.body.weight(.semibold))
-            .foregroundStyle(Theme.onInk)
-            .padding(.horizontal, 16)
-            .frame(minHeight: 36)
-            .background(Theme.ink.opacity(configuration.isPressed ? 0.8 : 1), in: RoundedRectangle(cornerRadius: 9))
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .animation(Motion.quick, value: configuration.isPressed)
+        StyledButton(configuration: configuration, isPrimary: true)
     }
 }
 
 struct SecondaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
+        StyledButton(configuration: configuration, isPrimary: false)
+    }
+}
+
+/// Shared look for both button styles. Disabled buttons fade out so it's clear they can't be clicked yet.
+private struct StyledButton: View {
+    let configuration: ButtonStyleConfiguration
+    let isPrimary: Bool
+    @Environment(\.isEnabled) private var isEnabled
+
+    private static let disabledOpacity = 0.35
+
+    var body: some View {
         configuration.label
             .font(.body.weight(.semibold))
-            .foregroundStyle(Theme.ink)
+            .foregroundStyle(isPrimary ? Theme.onInk : Theme.ink)
             .padding(.horizontal, 16)
             .frame(minHeight: 36)
-            .background(Theme.panel.opacity(configuration.isPressed ? 0.7 : 1), in: RoundedRectangle(cornerRadius: 9))
+            .background(
+                (isPrimary ? Theme.ink : Theme.panel).opacity(configuration.isPressed ? 0.8 : 1),
+                in: RoundedRectangle(cornerRadius: 9)
+            )
+            .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(isPrimary ? Color.clear : Theme.line))
+            .opacity(isEnabled ? 1 : Self.disabledOpacity)
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(Motion.quick, value: configuration.isPressed)
-            .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(Theme.line))
+            .animation(Motion.quick, value: isEnabled)
     }
 }

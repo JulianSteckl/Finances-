@@ -136,6 +136,70 @@ struct YearPlan {
     }
 }
 
+extension YearPlan {
+    /// Weekly spending money, scaled to how pay is really going.
+    /// The part covered by allowance stays fixed; the part paid from your job grows or shrinks with `incomeScale`.
+    func weeklySpending(incomeScale: Double) -> Double {
+        let fromAllowance = min(inputs.spendingPerWeek, inputs.allowancePerWeek)
+        let fromPay = max(0, inputs.spendingPerWeek - inputs.allowancePerWeek)
+        return fromAllowance + fromPay * max(0, incomeScale)
+    }
+
+    /// How much still needs moving into each bucket, given the pay earned so far and what's already moved.
+    /// Starting money counts toward Stocks. A negative value means more was moved than the plan asks for.
+    func stillToMove(earned: Double, movedTo: [Bucket: Double]) -> [Bucket: Double] {
+        let shares = paycheckShares
+        var result: [Bucket: Double] = [:]
+        for bucket in Bucket.allCases {
+            let owed = earned * (shares[bucket] ?? 0) + (bucket == .stocks ? inputs.startingMoney : 0)
+            result[bucket] = owed - (movedTo[bucket] ?? 0)
+        }
+        return result
+    }
+}
+
+/// This week's spending money, with whatever wasn't spent in earlier weeks rolled over.
+struct SpendingWeek {
+    let baseWeekly: Double
+    /// Unspent money from earlier weeks (negative if earlier weeks went over).
+    let rolledOver: Double
+    let spentThisWeek: Double
+    let weekStart: Date
+    let weekEnd: Date
+    /// Days left in this week, today included.
+    let daysLeft: Int
+
+    var available: Double { baseWeekly + rolledOver }
+    var left: Double { available - spentThisWeek }
+
+    /// Weeks run in 7-day blocks from `start`, so they line up with the paycheck weeks.
+    init(purchases: [(date: Date, amount: Double)], start: Date, now: Date, baseWeekly: Double, calendar: Calendar = .current) {
+        let startDay = calendar.startOfDay(for: start)
+        let daysSinceStart = max(0, calendar.dateComponents([.day], from: startDay, to: now).day ?? 0)
+        let weekIndex = daysSinceStart / 7
+        let weekStart = calendar.date(byAdding: .day, value: weekIndex * 7, to: startDay) ?? startDay
+        let weekEnd = calendar.date(byAdding: .day, value: 7, to: weekStart) ?? weekStart
+
+        var spentBefore = 0.0
+        var spentNow = 0.0
+        for purchase in purchases where purchase.date >= startDay {
+            if purchase.date < weekStart {
+                spentBefore += purchase.amount
+            } else if purchase.date < weekEnd {
+                spentNow += purchase.amount
+            }
+        }
+
+        self.baseWeekly = baseWeekly
+        self.rolledOver = baseWeekly * Double(weekIndex) - spentBefore
+        self.spentThisWeek = spentNow
+        self.weekStart = weekStart
+        self.weekEnd = weekEnd
+        let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: now), to: weekEnd).day ?? 1
+        self.daysLeft = max(1, days)
+    }
+}
+
 /// Forecast of summer pay once real paychecks come in, blending them with the base estimate.
 struct PayForecast {
     /// How many base-estimate weeks are mixed in, so one odd week doesn't swing the forecast.
