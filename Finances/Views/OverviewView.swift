@@ -2,37 +2,56 @@ import SwiftUI
 import SwiftData
 import Charts
 
+/// Everything the Overview shows, worked out once per redraw.
+struct OverviewSnapshot {
+    let inputs: PlanInputs
+    let yearPlan: YearPlan
+    let ledger: Ledger
+    let paidByWeek: [Double]
+    let projection: [Bucket: [Double]]
+    let currentWeek: Int
+
+    init(plan: IncomePlan?, ledger: Ledger, now: Date = .now) {
+        let inputs = plan?.inputs ?? .base
+        let yearPlan = YearPlan(inputs)
+        let start = plan?.weekNumberingStart(firstPaycheck: ledger.paychecks.first?.date) ?? now
+        let paidByWeek = ledger.weeklyPay(from: start)
+        self.inputs = inputs
+        self.yearPlan = yearPlan
+        self.ledger = ledger
+        self.paidByWeek = paidByWeek
+        self.projection = yearPlan.projection(paid: paidByWeek)
+        self.currentWeek = WeekCounter.week(of: now, from: start)
+    }
+
+    var savedAndInvestedAtYearEnd: Double {
+        (projection[.stocks]?.last ?? 0) + (projection[.savings]?.last ?? 0)
+    }
+}
+
 struct OverviewView: View {
     @Environment(\.modelContext) private var modelContext
     let plan: IncomePlan?
-    let entries: [MoneyEntry]
+    let ledger: Ledger
     let onLogEntry: () -> Void
 
     private static let recentCount = 6
 
-    private var inputs: PlanInputs { plan?.inputs ?? .base }
-    private var yearPlan: YearPlan { YearPlan(inputs) }
-    private var ledger: Ledger { Ledger(entries: entries) }
-    private var start: Date {
-        plan?.weekNumberingStart(firstPaycheck: ledger.paychecks.first?.date) ?? .now
-    }
-    private var paidByWeek: [Double] { ledger.weeklyPay(from: start) }
-    private var currentWeek: Int { WeekCounter.week(of: .now, from: start) }
-
     var body: some View {
-        ScrollView {
+        let snapshot = OverviewSnapshot(plan: plan, ledger: ledger)
+        return ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                header
-                kpis
+                header(snapshot)
+                kpis(snapshot)
                 ResponsiveRow {
-                    YearOutlookCard(series: yearPlan.projection(paid: paidByWeek), weeksOfWork: inputs.weeksOfWork, currentWeek: currentWeek)
+                    YearOutlookCard(series: snapshot.projection, weeksOfWork: snapshot.inputs.weeksOfWork, currentWeek: snapshot.currentWeek)
                 } trailing: {
-                    SpendingWeekCard(ledger: ledger, weeklyBudget: inputs.spendingPerWeek, pot: ledger.balance(of: .spending))
+                    SpendingWeekCard(ledger: ledger, weeklyBudget: snapshot.inputs.spendingPerWeek, pot: ledger.balance(of: .spending))
                 }
                 ResponsiveRow(leadingWeight: 1.3) {
-                    WeeklyPayCard(yearPlan: yearPlan, paidByWeek: paidByWeek)
+                    WeeklyPayCard(yearPlan: snapshot.yearPlan, paidByWeek: snapshot.paidByWeek)
                 } trailing: {
-                    MoveMoneyCard(yearPlan: yearPlan, ledger: ledger, onToggle: toggle)
+                    MoveMoneyCard(yearPlan: snapshot.yearPlan, ledger: ledger, onToggle: toggle)
                 }
                 recentActivity
             }
@@ -42,9 +61,9 @@ struct OverviewView: View {
         .navigationTitle("Overview")
     }
 
-    private var header: some View {
+    private func header(_ snapshot: OverviewSnapshot) -> some View {
         HStack(alignment: .bottom) {
-            PageHeader(eyebrow: weekLabel, title: "Overview")
+            PageHeader(eyebrow: weekLabel(snapshot), title: "Overview")
             Spacer()
             Button(action: onLogEntry) {
                 Label("Log entry", systemImage: "plus")
@@ -54,19 +73,22 @@ struct OverviewView: View {
         }
     }
 
-    private var weekLabel: String {
-        let summerWeeks = Int(inputs.weeksOfWork.rounded(.up))
-        return currentWeek <= summerWeeks
-            ? "Week \(currentWeek) of \(summerWeeks) · summer job"
-            : "Week \(currentWeek) of 52 · school year"
+    private func weekLabel(_ snapshot: OverviewSnapshot) -> String {
+        let summerWeeks = Int(snapshot.inputs.weeksOfWork.rounded(.up))
+        let week = snapshot.currentWeek
+        return week <= summerWeeks
+            ? "Week \(week) of \(summerWeeks) · summer job"
+            : "Week \(week) of 52 · school year"
     }
 
-    private var kpis: some View {
+    private func kpis(_ snapshot: OverviewSnapshot) -> some View {
+        let yearPlan = snapshot.yearPlan
+        let inputs = snapshot.inputs
         let savings = ledger.balance(of: .savings)
         let stocks = ledger.balance(of: .stocks)
         let savedGoal = yearPlan.yearTotal(for: .stocks) + yearPlan.yearTotal(for: .savings)
-        let yearEnd = yearPlan.savedAndInvestedAtYearEnd(paid: paidByWeek)
-        let spent = ledger.spentThisWeek()
+        let yearEnd = snapshot.savedAndInvestedAtYearEnd
+        let spent = ledger.spentThisWeek
         let budget = inputs.spendingPerWeek
         return LazyVGrid(columns: [GridItem(.adaptive(minimum: 210), spacing: 14)], spacing: 14) {
             KPITile(label: "Saved + invested", value: MoneyFormat.whole(savings + stocks),
@@ -89,10 +111,10 @@ struct OverviewView: View {
                 CardTitle(title: "Recent activity")
                 Button("See full log", action: onLogEntry).buttonStyle(.link)
             }
-            if entries.isEmpty {
+            if ledger.entries.isEmpty {
                 EmptyHint(text: "Nothing logged yet. Log your first paycheck to get started.")
             } else {
-                ForEach(Array(entries.prefix(Self.recentCount))) { entry in
+                ForEach(Array(ledger.entries.prefix(Self.recentCount))) { entry in
                     Divider()
                     EntryRow(entry: entry)
                 }
@@ -226,9 +248,9 @@ struct SpendingWeekCard: View {
     private static let ringWidth: CGFloat = 12
 
     var body: some View {
-        let spent = ledger.spentThisWeek()
+        let spent = ledger.spentThisWeek
         let left = weeklyBudget - spent
-        let daysLeft = ledger.daysLeftThisWeek()
+        let daysLeft = ledger.daysLeftThisWeek
         return VStack(alignment: .leading, spacing: 14) {
             CardTitle(title: "Spending this week")
             HStack(spacing: 18) {
@@ -262,7 +284,7 @@ struct SpendingWeekCard: View {
     }
 
     private var purchases: some View {
-        let items = ledger.purchasesThisWeek()
+        let items = ledger.purchasesThisWeek
         return VStack(spacing: 0) {
             if items.isEmpty {
                 EmptyHint(text: "No purchases yet this week.")

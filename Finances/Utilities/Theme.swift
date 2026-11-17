@@ -199,6 +199,7 @@ struct EmptyHint: View {
 }
 
 /// Lays two views side by side when there is room, otherwise stacks them.
+/// A custom layout measures each child once per width, unlike `ViewThatFits`, which lays out every option.
 struct ResponsiveRow<Leading: View, Trailing: View>: View {
     var minWideWidth: CGFloat = 760
     var leadingWeight: CGFloat = 1.6
@@ -206,15 +207,51 @@ struct ResponsiveRow<Leading: View, Trailing: View>: View {
     @ViewBuilder let trailing: Trailing
 
     var body: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(alignment: .top, spacing: Theme.gap) {
-                leading.frame(minWidth: minWideWidth * leadingWeight / (leadingWeight + 1) - Theme.gap)
-                trailing.frame(minWidth: minWideWidth / (leadingWeight + 1) - Theme.gap)
-            }
-            VStack(spacing: Theme.gap) {
-                leading
-                trailing
-            }
+        SplitRowLayout(minWideWidth: minWideWidth, leadingWeight: leadingWeight, spacing: Theme.gap) {
+            leading
+            trailing
+        }
+    }
+}
+
+struct SplitRowLayout: Layout {
+    let minWideWidth: CGFloat
+    let leadingWeight: CGFloat
+    let spacing: CGFloat
+
+    private func columnWidths(for total: CGFloat) -> (leading: CGFloat, trailing: CGFloat) {
+        let available = max(0, total - spacing)
+        let leading = available * leadingWeight / (leadingWeight + 1)
+        return (leading, available - leading)
+    }
+
+    private func height(of subview: LayoutSubview, width: CGFloat) -> CGFloat {
+        subview.sizeThatFits(ProposedViewSize(width: width, height: nil)).height
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard subviews.count == 2 else { return .zero }
+        let width = proposal.width ?? minWideWidth
+        if width >= minWideWidth {
+            let columns = columnWidths(for: width)
+            return CGSize(width: width, height: max(height(of: subviews[0], width: columns.leading),
+                                                    height(of: subviews[1], width: columns.trailing)))
+        }
+        return CGSize(width: width, height: height(of: subviews[0], width: width) + spacing + height(of: subviews[1], width: width))
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        guard subviews.count == 2 else { return }
+        if bounds.width >= minWideWidth {
+            let columns = columnWidths(for: bounds.width)
+            subviews[0].place(at: bounds.origin, proposal: ProposedViewSize(width: columns.leading, height: nil))
+            subviews[1].place(at: CGPoint(x: bounds.minX + columns.leading + spacing, y: bounds.minY),
+                              proposal: ProposedViewSize(width: columns.trailing, height: nil))
+        } else {
+            let firstHeight = height(of: subviews[0], width: bounds.width)
+            subviews[0].place(at: bounds.origin, proposal: ProposedViewSize(width: bounds.width, height: nil))
+            subviews[1].place(at: CGPoint(x: bounds.minX, y: bounds.minY + firstHeight + spacing),
+                              proposal: ProposedViewSize(width: bounds.width, height: nil))
         }
     }
 }

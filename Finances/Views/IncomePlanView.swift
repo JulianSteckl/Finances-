@@ -371,27 +371,38 @@ struct IncomePlanView: View {
             return created
         }()
 
-        target.usesSeasonDates = usesSeasonDates
-        target.seasonStart = seasonStart
-        target.seasonEnd = max(seasonStart, seasonEnd)
+        // Only touch values that really changed, so leaving the screen without edits doesn't
+        // save and make every other screen redraw.
+        var changed = false
+        func assign<Value: Equatable>(_ keyPath: ReferenceWritableKeyPath<IncomePlan, Value>, _ value: Value) {
+            guard target[keyPath: keyPath] != value else { return }
+            target[keyPath: keyPath] = value
+            changed = true
+        }
+
+        assign(\.usesSeasonDates, usesSeasonDates)
+        assign(\.seasonStart, seasonStart)
+        assign(\.seasonEnd, max(seasonStart, seasonEnd))
         // Store the derived weeks so other screens can keep reading `weeksInSeason` directly.
-        target.weeksInSeason = effectiveWeeks
-        target.payFrequency = payFrequency
-        target.hoursPerWeek = hoursPerWeek.clampedNonNegative
-        target.hourlyWage = hourlyWage.clampedNonNegative
-        target.overtimeHoursPerWeek = overtimeHoursPerWeek.clampedNonNegative
-        target.overtimeMultiplier = overtimeMultiplier.clampedNonNegative
-        target.tipsPerWeek = tipsPerWeek.clampedNonNegative
-        target.oneTimeBonuses = oneTimeBonuses.clampedNonNegative
-        target.totalTargetOverride = useOverride ? totalTargetOverride.clampedNonNegative : 0
-        target.allowancePerWeek = allowancePerWeek.clampedNonNegative
-        target.spendingPerWeek = spendingPerWeek.clampedNonNegative
-        target.gasPerTwoWeeks = gasPerTwoWeeks.clampedNonNegative
-        target.savingsGoal = savingsGoal.clampedNonNegative
-        target.startingMoney = startingMoney.clampedNonNegative
-        target.taxRate = min(1, taxPercent.clampedNonNegative / Self.percentScale)
-        target.stockReturn = stockReturnPercent / Self.percentScale
-        target.savingsReturn = savingsReturnPercent / Self.percentScale
+        assign(\.weeksInSeason, effectiveWeeks)
+        assign(\.payFrequency, payFrequency)
+        assign(\.hoursPerWeek, hoursPerWeek.clampedNonNegative)
+        assign(\.hourlyWage, hourlyWage.clampedNonNegative)
+        assign(\.overtimeHoursPerWeek, overtimeHoursPerWeek.clampedNonNegative)
+        assign(\.overtimeMultiplier, overtimeMultiplier.clampedNonNegative)
+        assign(\.tipsPerWeek, tipsPerWeek.clampedNonNegative)
+        assign(\.oneTimeBonuses, oneTimeBonuses.clampedNonNegative)
+        assign(\.totalTargetOverride, useOverride ? totalTargetOverride.clampedNonNegative : 0)
+        assign(\.allowancePerWeek, allowancePerWeek.clampedNonNegative)
+        assign(\.spendingPerWeek, spendingPerWeek.clampedNonNegative)
+        assign(\.gasPerTwoWeeks, gasPerTwoWeeks.clampedNonNegative)
+        assign(\.savingsGoal, savingsGoal.clampedNonNegative)
+        assign(\.startingMoney, startingMoney.clampedNonNegative)
+        assign(\.taxRate, min(1, taxPercent.clampedNonNegative / Self.percentScale))
+        assign(\.stockReturn, stockReturnPercent / Self.percentScale)
+        assign(\.savingsReturn, savingsReturnPercent / Self.percentScale)
+
+        guard changed || plan == nil else { return }
         target.updatedAt = .now
         modelContext.saveChanges()
     }

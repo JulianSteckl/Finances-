@@ -36,13 +36,14 @@ struct ContentView: View {
     @State private var section: AppSection = .overview
 
     private var plan: IncomePlan? { plans.first }
-    private var ledger: Ledger { Ledger(entries: entries) }
 
     var body: some View {
-        NavigationSplitView {
-            sidebar
+        // Built once per change to the log and shared by the sidebar and every screen.
+        let ledger = Ledger(entries: entries)
+        return NavigationSplitView {
+            sidebar(ledger)
         } detail: {
-            detail
+            detail(ledger)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .tint(Theme.ink)
@@ -51,7 +52,7 @@ struct ContentView: View {
         }
     }
 
-    private var sidebar: some View {
+    private func sidebar(_ ledger: Ledger) -> some View {
         List(selection: $section) {
             Section {
                 ForEach(AppSection.allCases) { item in
@@ -78,12 +79,12 @@ struct ContentView: View {
     }
 
     @ViewBuilder
-    private var detail: some View {
+    private func detail(_ ledger: Ledger) -> some View {
         switch section {
         case .overview:
-            OverviewView(plan: plan, entries: entries) { section = .paychecks }
+            OverviewView(plan: plan, ledger: ledger) { section = .paychecks }
         case .paychecks:
-            PaychecksView(plan: plan, entries: entries)
+            PaychecksView(plan: plan, ledger: ledger)
         case .yearPlan:
             YearPlanView(plan: plan)
         case .settings:

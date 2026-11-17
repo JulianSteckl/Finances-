@@ -5,32 +5,19 @@ import Charts
 struct PaychecksView: View {
     @Environment(\.modelContext) private var modelContext
     let plan: IncomePlan?
-    let entries: [MoneyEntry]
+    let ledger: Ledger
 
-    @State private var kind: EntryKind = .paycheck
-    @State private var amount: Double = 0
-    @State private var hours: Double = 0
-    @State private var date: Date = .now
-    @State private var note = ""
     @State private var pendingDelete: MoneyEntry?
-    @FocusState private var amountFocused: Bool
-
-    private var inputs: PlanInputs { plan?.inputs ?? .base }
-    private var yearPlan: YearPlan { YearPlan(inputs) }
-    private var ledger: Ledger { Ledger(entries: entries) }
-    private var paidByWeek: [Double] {
-        ledger.weeklyPay(from: plan?.weekNumberingStart(firstPaycheck: ledger.paychecks.first?.date) ?? .now)
-    }
 
     var body: some View {
-        ScrollView {
+        let inputs = plan?.inputs ?? .base
+        let yearPlan = YearPlan(inputs)
+        let paidByWeek = ledger.weeklyPay(from: plan?.weekNumberingStart(firstPaycheck: ledger.paychecks.first?.date) ?? .now)
+        return ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 PageHeader(eyebrow: "Log a paycheck, purchase, gas fill-up or allowance", title: "Paychecks & log")
-                ResponsiveRow(leadingWeight: 0.9) {
-                    entryForm
-                } trailing: {
-                    SplitPreviewCard(yearPlan: yearPlan, amount: kind == .paycheck && amount > 0 ? amount : yearPlan.weeklyPay)
-                }
+                // The form keeps its own state, so typing only redraws the form and its split preview.
+                NewEntrySection(inputs: inputs, yearPlan: yearPlan, spentThisWeek: ledger.spentThisWeek, gasBalance: ledger.balance(of: .gas))
                 PayForecastCard(yearPlan: yearPlan, paidByWeek: paidByWeek)
                 logCard
             }
@@ -38,7 +25,6 @@ struct PaychecksView: View {
         }
         .background(Theme.background)
         .navigationTitle("Paychecks & log")
-        .onAppear(perform: resetDraft)
         .confirmationDialog(
             "Delete this entry?",
             isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
@@ -50,7 +36,64 @@ struct PaychecksView: View {
         }
     }
 
-    // MARK: - Form
+    private var logCard: some View {
+        LazyVStack(alignment: .leading, spacing: 6) {
+            CardTitle(title: "Log", trailing: "\(ledger.entries.count) entries")
+            if ledger.entries.isEmpty {
+                EmptyHint(text: "Nothing logged yet.")
+            }
+            ForEach(ledger.entries) { entry in
+                Divider()
+                HStack(spacing: 8) {
+                    EntryRow(entry: entry)
+                    Button {
+                        pendingDelete = entry
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(Theme.muted)
+                    .help("Delete entry")
+                    .accessibilityLabel("Delete \(entry.title)")
+                }
+            }
+        }
+        .card()
+    }
+
+    private func delete(_ entry: MoneyEntry) {
+        if entry.kind == .paycheck {
+            // Checklist moves belong to their paycheck, so they go with it.
+            ledger.transfers(from: entry).forEach(modelContext.delete)
+        }
+        modelContext.delete(entry)
+        modelContext.saveChanges()
+        pendingDelete = nil
+    }
+}
+
+/// The "New entry" form and its live split preview.
+struct NewEntrySection: View {
+    @Environment(\.modelContext) private var modelContext
+    let inputs: PlanInputs
+    let yearPlan: YearPlan
+    let spentThisWeek: Double
+    let gasBalance: Double
+
+    @State private var kind: EntryKind = .paycheck
+    @State private var amount: Double = 0
+    @State private var hours: Double = 0
+    @State private var date: Date = .now
+    @State private var note = ""
+
+    var body: some View {
+        ResponsiveRow(leadingWeight: 0.9) {
+            entryForm
+        } trailing: {
+            SplitPreviewCard(yearPlan: yearPlan, amount: kind == .paycheck && amount > 0 ? amount : yearPlan.weeklyPay)
+        }
+        .onAppear(perform: resetDraft)
+    }
 
     private var entryForm: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -66,7 +109,6 @@ struct PaychecksView: View {
                 GridRow {
                     field("Amount") {
                         TextField("Amount", value: $amount, format: MoneyFormat.currency)
-                            .focused($amountFocused)
                     }
                     if kind == .paycheck {
                         field("Hours worked") { TextField("Hours", value: $hours, format: .number) }
@@ -103,43 +145,13 @@ struct PaychecksView: View {
             let perHour = hours > 0 ? MoneyFormat.string(amount / hours) : "—"
             return "Works out to \(perHour) an hour (plan: \(MoneyFormat.string(inputs.hourlyWage)))"
         case .spending:
-            let left = inputs.spendingPerWeek - ledger.spentThisWeek() - amount
-            return "Left this week after this: \(MoneyFormat.string(left))"
+            return "Left this week after this: \(MoneyFormat.string(inputs.spendingPerWeek - spentThisWeek - amount))"
         case .gas:
-            return "Gas pot after this: \(MoneyFormat.string(ledger.balance(of: .gas) - amount))"
+            return "Gas pot after this: \(MoneyFormat.string(gasBalance - amount))"
         case .allowance, .transfer:
             return "Goes straight into Spending"
         }
     }
-
-    // MARK: - Log
-
-    private var logCard: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            CardTitle(title: "Log", trailing: "\(entries.count) entries")
-            if entries.isEmpty {
-                EmptyHint(text: "Nothing logged yet.")
-            }
-            ForEach(entries) { entry in
-                Divider()
-                HStack(spacing: 8) {
-                    EntryRow(entry: entry)
-                    Button {
-                        pendingDelete = entry
-                    } label: {
-                        Image(systemName: "trash")
-                    }
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(Theme.muted)
-                    .help("Delete entry")
-                    .accessibilityLabel("Delete \(entry.title)")
-                }
-            }
-        }
-        .card()
-    }
-
-    // MARK: - Actions
 
     private func save() {
         guard amount > 0 else { return }
@@ -153,18 +165,6 @@ struct PaychecksView: View {
         modelContext.insert(entry)
         modelContext.saveChanges()
         resetDraft()
-    }
-
-    private func delete(_ entry: MoneyEntry) {
-        if entry.kind == .paycheck {
-            // Checklist moves belong to their paycheck, so they go with it.
-            ledger.entries
-                .filter { $0.linkedPaycheckID == entry.entryID }
-                .forEach(modelContext.delete)
-        }
-        modelContext.delete(entry)
-        modelContext.saveChanges()
-        pendingDelete = nil
     }
 
     private func resetDraft() {
