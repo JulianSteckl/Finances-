@@ -139,7 +139,7 @@ struct CardTitle: View {
             Text(title).font(.system(size: 15, weight: .semibold))
             Spacer()
             if let trailing {
-                Text(trailing).font(.caption).foregroundStyle(Theme.muted)
+                Text(trailing).font(.caption).foregroundStyle(Theme.muted).animatedNumber(trailing)
             }
         }
     }
@@ -177,7 +177,7 @@ struct KPITile: View {
             if let progress {
                 ProgressBar(value: progress, tint: tint)
             }
-            Text(footnote).font(.caption).foregroundStyle(Theme.muted).lineLimit(2)
+            Text(footnote).font(.caption).foregroundStyle(Theme.muted).lineLimit(2).animatedNumber(footnote)
         }
         .card()
     }

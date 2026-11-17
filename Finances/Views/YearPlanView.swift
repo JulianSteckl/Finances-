@@ -142,7 +142,7 @@ struct MoneyFlowCard: View {
                         .font(.caption.weight(.semibold)).foregroundStyle(Theme.muted)
                         Text(MoneyFormat.whole(yearPlan.yearTotal(for: bucket))).font(.system(size: 17, weight: .bold)).monospacedDigit()
                             .animatedNumber(yearPlan.yearTotal(for: bucket))
-                        Text("\(Int(((shares[bucket] ?? 0) * 100).rounded()))%").font(.caption).foregroundStyle(Theme.muted)
+                        Text("\(Int(((shares[bucket] ?? 0) * 100).rounded()))%").font(.caption).foregroundStyle(Theme.muted).animatedNumber(shares[bucket] ?? 0)
                     }
                 }
             }
@@ -240,7 +240,7 @@ struct MoneyInCard: View {
             HStack {
                 Text("Total").fontWeight(.bold)
                 Spacer()
-                Text(MoneyFormat.whole(yearPlan.totalIn)).fontWeight(.bold).monospacedDigit()
+                Text(MoneyFormat.whole(yearPlan.totalIn)).fontWeight(.bold).monospacedDigit().animatedNumber(yearPlan.totalIn)
             }
             .padding(.vertical, 6)
         }
@@ -252,9 +252,9 @@ struct MoneyInCard: View {
             Divider()
             HStack(alignment: .firstTextBaseline, spacing: 16) {
                 Text(name).fontWeight(.medium).frame(width: 130, alignment: .leading)
-                Text(how).foregroundStyle(Theme.muted)
+                Text(how).foregroundStyle(Theme.muted).animatedNumber(how)
                 Spacer()
-                Text(MoneyFormat.whole(total)).fontWeight(.medium).monospacedDigit()
+                Text(MoneyFormat.whole(total)).fontWeight(.medium).monospacedDigit().animatedNumber(total)
             }
             .padding(.vertical, 8)
         }

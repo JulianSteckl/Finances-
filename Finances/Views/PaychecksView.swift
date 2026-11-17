@@ -125,7 +125,7 @@ struct NewEntrySection: View {
                     }
                 }
             }
-            Text(hint).font(.caption).foregroundStyle(Theme.muted)
+            Text(hint).font(.caption).foregroundStyle(Theme.muted).animatedNumber(hint)
             Button("Save entry", action: save)
                 .buttonStyle(PrimaryButtonStyle())
                 .disabled(amount <= 0)
@@ -203,7 +203,7 @@ struct SplitPreviewCard: View {
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(spacing: 6) {
                             BucketDot(bucket: bucket)
-                            Text("\(bucket.name) · \(((shares[bucket] ?? 0) * 100).formatted(.number.precision(.fractionLength(1))))%")
+                            Text("\(bucket.name) · \(((shares[bucket] ?? 0) * 100).formatted(.number.precision(.fractionLength(1))))%").animatedNumber(shares[bucket] ?? 0)
                         }
                         .font(.caption.weight(.semibold)).foregroundStyle(Theme.muted)
                         Text(MoneyFormat.string(split[bucket] ?? 0)).font(.system(size: 20, weight: .bold)).monospacedDigit()
@@ -295,8 +295,8 @@ struct PayForecastCard: View {
     private func stat(_ label: String, _ value: String, _ footnote: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label).font(.caption.weight(.semibold)).foregroundStyle(Theme.muted)
-            Text(value).font(.system(size: 20, weight: .bold)).monospacedDigit()
-            Text(footnote).font(.caption).foregroundStyle(Theme.muted)
+            Text(value).font(.system(size: 20, weight: .bold)).monospacedDigit().animatedNumber(value)
+            Text(footnote).font(.caption).foregroundStyle(Theme.muted).animatedNumber(footnote)
         }
     }
 }

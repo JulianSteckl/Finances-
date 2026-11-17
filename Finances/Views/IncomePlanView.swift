@@ -120,7 +120,7 @@ struct IncomePlanView: View {
                             .labelsHidden()
                     }
                     labeledField("Weeks in season") {
-                        Text(effectiveWeeks.formatted(.number.precision(.fractionLength(0...1))))
+                        Text(effectiveWeeks.formatted(.number.precision(.fractionLength(0...1)))).animatedNumber(effectiveWeeks)
                             .monospacedDigit()
                             .foregroundStyle(.secondary)
                     }
@@ -176,7 +176,7 @@ struct IncomePlanView: View {
                     TextField("1.5", value: $overtimeMultiplier, format: .number)
                         .textFieldStyle(.roundedBorder)
                         .frame(maxWidth: 80)
-                    Text("× wage = \(MoneyFormat.string(hourlyWage.clampedNonNegative * overtimeMultiplier.clampedNonNegative))/hr")
+                    Text("× wage = \(MoneyFormat.string(hourlyWage.clampedNonNegative * overtimeMultiplier.clampedNonNegative))/hr").animatedNumber(hourlyWage * overtimeMultiplier)
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
                 }
@@ -275,7 +275,7 @@ struct IncomePlanView: View {
                     Text("Planned income")
                         .font(.headline)
                     Spacer()
-                    Text(MoneyFormat.string(preview.plannedIncome))
+                    Text(MoneyFormat.string(preview.plannedIncome)).animatedNumber(preview.plannedIncome)
                         .font(.title2.weight(.semibold))
                         .monospacedDigit()
                 }
@@ -326,6 +326,7 @@ struct IncomePlanView: View {
             }
             Spacer()
             Text(MoneyFormat.string(value))
+                .animatedNumber(value)
                 .monospacedDigit()
         }
     }

@@ -201,7 +201,7 @@ struct YearOutlookCard: View {
                 HStack(spacing: 5) {
                     Capsule().fill(bucket.color).frame(width: 10, height: 3)
                     Text(bucket.name).foregroundStyle(Theme.muted)
-                    Text(MoneyFormat.whole(series[bucket]?.last ?? 0)).fontWeight(.semibold)
+                    Text(MoneyFormat.whole(series[bucket]?.last ?? 0)).fontWeight(.semibold).animatedNumber(series[bucket]?.last ?? 0)
                 }
                 .font(.caption)
             }
@@ -263,8 +263,8 @@ struct SpendingWeekCard: View {
                 ring(left: left)
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Resets at the start of next week").foregroundStyle(Theme.muted)
-                    Text("\(MoneyFormat.string(max(0, left) / Double(daysLeft))) a day for \(daysLeft) days")
-                    Text("Spending pot: \(MoneyFormat.whole(pot))").foregroundStyle(Theme.muted)
+                    Text("\(MoneyFormat.string(max(0, left) / Double(daysLeft))) a day for \(daysLeft) days").animatedNumber(left)
+                    Text("Spending pot: \(MoneyFormat.whole(pot))").foregroundStyle(Theme.muted).animatedNumber(pot)
                 }
                 .font(.callout)
             }
@@ -283,7 +283,7 @@ struct SpendingWeekCard: View {
                 .animation(Motion.smooth, value: left)
             VStack(spacing: 0) {
                 Text(MoneyFormat.string(left)).font(.system(size: 18, weight: .bold)).monospacedDigit().animatedNumber(left)
-                Text("left of \(MoneyFormat.whole(weeklyBudget))").font(.caption2).foregroundStyle(Theme.muted)
+                Text("left of \(MoneyFormat.whole(weeklyBudget))").font(.caption2).foregroundStyle(Theme.muted).animatedNumber(weeklyBudget)
             }
         }
         .frame(width: Self.ringSize, height: Self.ringSize)
@@ -302,7 +302,7 @@ struct SpendingWeekCard: View {
                     Text(item.title)
                     Text("· \(item.date.formatted(.dateTime.weekday(.abbreviated)))").foregroundStyle(Theme.muted)
                     Spacer()
-                    Text(MoneyFormat.signed(-item.amount)).fontWeight(.semibold).monospacedDigit()
+                    Text(MoneyFormat.signed(-item.amount)).fontWeight(.semibold).monospacedDigit().animatedNumber(item.amount)
                 }
                 .padding(.vertical, 8)
             }
@@ -388,7 +388,7 @@ struct WeeklyPayCard: View {
     private func stat(_ label: String, _ value: String) -> some View {
         HStack(spacing: 4) {
             Text(label).foregroundStyle(Theme.muted)
-            Text(value).fontWeight(.semibold).monospacedDigit()
+            Text(value).fontWeight(.semibold).monospacedDigit().animatedNumber(value)
         }
         .font(.caption)
     }
@@ -417,6 +417,7 @@ struct MoveMoneyCard: View {
         let doneCount = Bucket.allCases.filter { ledger.transfer(from: paycheck, to: $0) != nil }.count
         CardTitle(title: "Move your money", trailing: "\(doneCount) of \(Bucket.allCases.count) done")
         Text("From your \(MoneyFormat.string(paycheck.amount)) paycheck on \(paycheck.date.formatted(date: .abbreviated, time: .omitted)), in Greenlight")
+            .animatedNumber(paycheck.amount)
             .font(.caption).foregroundStyle(Theme.muted)
         BucketSplitBar(shares: yearPlan.paycheckShares, height: 8)
         ForEach(Bucket.allCases) { bucket in
@@ -425,7 +426,7 @@ struct MoveMoneyCard: View {
             }
         }
         if ledger.notYetMoved > 0.5 {
-            Text("\(MoneyFormat.string(ledger.notYetMoved)) from all paychecks is not moved yet")
+            Text("\(MoneyFormat.string(ledger.notYetMoved)) from all paychecks is not moved yet").animatedNumber(ledger.notYetMoved)
                 .font(.caption).foregroundStyle(Theme.muted)
         }
     }
@@ -473,6 +474,7 @@ struct EntryRow: View {
                 .frame(width: 90, alignment: .leading)
             }
             Text(amountText)
+                .animatedNumber(amountText)
                 .fontWeight(.semibold)
                 .monospacedDigit()
                 .frame(width: 100, alignment: .trailing)
