@@ -10,6 +10,10 @@ struct OverviewView: View {
         FinanceMath.totals(plan: plan, entries: entries)
     }
 
+    private var runway: RunwaySnapshot? {
+        FinanceMath.runway(plan: plan, categories: categories, entries: entries)
+    }
+
     private var remainingAllocation: Double {
         FinanceMath.remainingToAllocate(categories: categories, income: totals.plannedIncome)
     }
@@ -20,9 +24,13 @@ struct OverviewView: View {
                 header
 
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-                    SummaryCard(title: "Planned income", value: MoneyFormat.string(totals.plannedIncome), footnote: planFootnote)
+                    SummaryCard(title: "Summer plan", value: MoneyFormat.string(totals.plannedIncome), footnote: planFootnote)
                     SummaryCard(title: "Earned so far", value: MoneyFormat.string(totals.actualIncome), footnote: "\(Int(totals.incomeProgress * 100))% of plan")
                     SummaryCard(title: "Spent so far", value: MoneyFormat.string(totals.actualSpending), footnote: "Net \(MoneyFormat.string(totals.netActual))")
+                }
+
+                if let runway {
+                    runwaySection(runway)
                 }
 
                 allocationSection
@@ -40,16 +48,69 @@ struct OverviewView: View {
         if plan.usesOverride {
             return "Using total target override"
         }
+        if plan.usesSchedule {
+            return "\(plan.weeklyHoursFromSchedule.formatted(.number.precision(.fractionLength(0...1)))) hrs/wk × \(MoneyFormat.string(plan.hourlyWage)) × \(plan.summerWeeksComputed.formatted(.number.precision(.fractionLength(0...1)))) wks"
+        }
         return "\(plan.hoursPerWeek.formatted()) hrs/wk × \(MoneyFormat.string(plan.hourlyWage)) × \(plan.weeksInSeason.formatted()) wks"
     }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Summer money")
+            Text("Summer → school year")
                 .font(.largeTitle.weight(.semibold))
-            Text("Plan your earnings, split them into buckets, then track paychecks and spending as the season goes.")
+            Text("Earn in the summer, then spend at a pace that lasts until school ends again.")
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func runwaySection(_ runway: RunwaySnapshot) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("School-year runway")
+                    .font(.title2.weight(.semibold))
+                Spacer()
+                Text(phaseLabel(runway.phase))
+                    .foregroundStyle(.secondary)
+                Text(runway.onTrack ? "On track" : "Over pace")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(runway.onTrack ? Color.green : Color.orange)
+            }
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+                SummaryCard(
+                    title: "Living pool",
+                    value: MoneyFormat.string(runway.livingPool),
+                    footnote: "After \(MoneyFormat.string(runway.lockedAway)) locked in Stocks/Savings"
+                )
+                SummaryCard(
+                    title: "Safe weekly",
+                    value: MoneyFormat.string(runway.safeWeekly),
+                    footnote: "\(MoneyFormat.string(runway.safeMonthly))/mo over \(runway.schoolYearWeeks.formatted(.number.precision(.fractionLength(0...1)))) weeks"
+                )
+                SummaryCard(
+                    title: runway.phase == .schoolYear ? "Suggested now" : "Weekly pay",
+                    value: MoneyFormat.string(
+                        runway.phase == .schoolYear ? runway.suggestedWeeklyNow : runway.weeklyPay
+                    ),
+                    footnote: runway.phase == .schoolYear
+                        ? "Based on \(MoneyFormat.string(runway.remainingCash)) left ÷ \(runway.weeksLeftInSchoolYear.formatted(.number.precision(.fractionLength(0...1)))) weeks left"
+                        : "\(runway.weeklyHours.formatted(.number.precision(.fractionLength(0...1)))) hrs × wage"
+                )
+            }
+
+            if runway.phase == .schoolYear && runway.spentPerWeekSoFar > 0 {
+                Text("You’re averaging \(MoneyFormat.string(runway.spentPerWeekSoFar))/week since school started (target \(MoneyFormat.string(runway.safeWeekly))).")
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func phaseLabel(_ phase: RunwaySnapshot.Phase) -> String {
+        switch phase {
+        case .summer: "Summer earning"
+        case .schoolYear: "School year"
+        case .between: "Between seasons"
         }
     }
 
@@ -86,7 +147,7 @@ struct OverviewView: View {
             return "Fully allocated"
         }
         if remainingAllocation > 0 {
-            return "\(MoneyFormat.string(remainingAllocation)) left to allocate"
+            return "\(MoneyFormat.string(remainingAllocation)) left for school-year living"
         }
         return "\(MoneyFormat.string(abs(remainingAllocation))) over-allocated"
     }
@@ -131,7 +192,7 @@ struct SummaryCard: View {
             Text(footnote)
                 .font(.callout)
                 .foregroundStyle(.secondary)
-                .lineLimit(2)
+                .lineLimit(3)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
