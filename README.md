@@ -1,6 +1,8 @@
 # Finances
 
-Native macOS app (SwiftUI + SwiftData) for planning and tracking summer-job money: expected income, allocation buckets, paychecks, and spending.
+Native macOS app (SwiftUI + SwiftData) for a summer-only job: forecast earnings from your real schedule, then stretch that money through the school year.
+
+Built around Julian’s schedule defaults: **$20/hr** (no tax), **Mon–Thu ~4–5 hrs**, **Friday ~7–8 hrs**, summer **May 21 → ~Aug 17**, school-year runway until the next **May 21**.
 
 ## Requirements
 
@@ -22,16 +24,19 @@ Native macOS app (SwiftUI + SwiftData) for planning and tracking summer-job mone
 3. In Xcode, select the **Finances** scheme and **My Mac** as the run destination.
 4. Press **⌘R** (Product → Run).
 
-On first launch the app seeds starter categories (**Stocks**, **Savings**, **Gas**) and a default income plan so you can start immediately.
+On first launch the app seeds **Stocks (25%)**, **Savings (25%)**, **Gas (10%)**, and leaves the rest for school-year living — plus a schedule-based income plan.
 
-## What’s in v1
+If you already ran v1, delete the app (or its data) once so SwiftData can pick up the new plan fields cleanly, or just edit the Income Plan dates/hours and tap Save.
+
+## What’s in v2
 
 | Area | Behavior |
 |------|----------|
-| **Income plan** | Set hours/week, hourly wage, and season length — or a total summer target. |
-| **Allocations** | Split planned income by **percent** or **dollars** across categories; add/delete custom buckets; see planned vs remaining. |
-| **Tracking** | Log paychecks and spending (optionally tagged to a category); compare actuals on Overview. |
-| **Overview** | Planned vs earned, spending, allocation progress, and recent activity. |
+| **Income plan** | Mon–Thu + Friday hours, $20/hr default, summer date range, optional total override. |
+| **School-year runway** | Living pool after Stocks/Savings; safe weekly/monthly spend; weeks left; on-track vs actual burn. |
+| **Allocations** | Percent or dollar buckets; custom categories; planned vs remaining (unallocated = living money). |
+| **Tracking** | Paychecks and spending; optional category tags. |
+| **Overview** | Summer plan vs earned/spent, runway cards, allocation progress, recent activity. |
 
 Data is stored locally with **SwiftData** (no account or server).
 
@@ -44,7 +49,7 @@ Finances/
   ContentView.swift    macOS NavigationSplitView shell
   Models/              IncomePlan, BudgetCategory, MoneyEntry
   Views/               Overview, Income, Allocations, Tracking
-  Utilities/           Formatting + seed/math helpers
+  Utilities/           Formatting, season calendar, seed/math
   Assets.xcassets
 ```
 
