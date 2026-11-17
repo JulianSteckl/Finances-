@@ -41,19 +41,21 @@ struct OverviewView: View {
         let snapshot = OverviewSnapshot(plan: plan, ledger: ledger)
         return ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                header(snapshot)
-                kpis(snapshot)
+                header(snapshot).appearEffect(order: 0)
+                kpis(snapshot).appearEffect(order: 1)
                 ResponsiveRow {
                     YearOutlookCard(series: snapshot.projection, weeksOfWork: snapshot.inputs.weeksOfWork, currentWeek: snapshot.currentWeek)
                 } trailing: {
                     SpendingWeekCard(ledger: ledger, weeklyBudget: snapshot.inputs.spendingPerWeek, pot: ledger.balance(of: .spending))
                 }
+                .appearEffect(order: 2)
                 ResponsiveRow(leadingWeight: 1.3) {
                     WeeklyPayCard(yearPlan: snapshot.yearPlan, paidByWeek: snapshot.paidByWeek)
                 } trailing: {
                     MoveMoneyCard(yearPlan: snapshot.yearPlan, ledger: ledger, onToggle: toggle)
                 }
-                recentActivity
+                .appearEffect(order: 3)
+                recentActivity.appearEffect(order: 4)
             }
             .padding(Theme.pagePadding)
         }
@@ -117,6 +119,7 @@ struct OverviewView: View {
                 ForEach(Array(ledger.entries.prefix(Self.recentCount))) { entry in
                     Divider()
                     EntryRow(entry: entry)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
         }
@@ -124,13 +127,15 @@ struct OverviewView: View {
     }
 
     private func toggle(_ bucket: Bucket, paycheck: MoneyEntry, amount: Double) {
-        if let existing = ledger.transfer(from: paycheck, to: bucket) {
-            modelContext.delete(existing)
-        } else {
-            let rounded = (amount * 100).rounded() / 100
-            modelContext.insert(MoneyEntry(amount: rounded, kind: .transfer, bucket: bucket, linkedPaycheckID: paycheck.entryID))
+        withAnimation(Motion.quick) {
+            if let existing = ledger.transfer(from: paycheck, to: bucket) {
+                modelContext.delete(existing)
+            } else {
+                let rounded = (amount * 100).rounded() / 100
+                modelContext.insert(MoneyEntry(amount: rounded, kind: .transfer, bucket: bucket, linkedPaycheckID: paycheck.entryID))
+            }
+            modelContext.saveChanges()
         }
-        modelContext.saveChanges()
     }
 
     private func percent(_ value: Double, of total: Double) -> String {
@@ -158,6 +163,7 @@ struct YearOutlookCard: View {
     let series: [Bucket: [Double]]
     let weeksOfWork: Double
     let currentWeek: Int
+    @State private var reveal: Double = 0
 
     private struct Point: Identifiable {
         let bucket: Bucket
@@ -168,12 +174,12 @@ struct YearOutlookCard: View {
 
     private var points: [Point] {
         Bucket.allCases.flatMap { bucket in
-            (series[bucket] ?? []).enumerated().map { Point(bucket: bucket, week: $0.offset, value: $0.element) }
+            (series[bucket] ?? []).enumerated().map { Point(bucket: bucket, week: $0.offset, value: $0.element * reveal) }
         }
     }
 
     private var maxValue: Double {
-        max(1000, ((points.map(\.value).max() ?? 0) / 1000).rounded(.up) * 1000)
+        max(1000, ((series.values.flatMap { $0 }.max() ?? 0) / 1000).rounded(.up) * 1000)
     }
 
     var body: some View {
@@ -182,7 +188,7 @@ struct YearOutlookCard: View {
                 CardTitle(title: "Year outlook by bucket")
                 legend
             }
-            chart.frame(height: 240)
+            chart.frame(height: 240).revealOnAppear($reveal)
             Text("Spending and gas fill up during the summer, then run down to $0 by week 52. Stocks and savings keep growing all year.")
                 .font(.caption).foregroundStyle(Theme.muted)
         }
@@ -274,8 +280,9 @@ struct SpendingWeekCard: View {
                 .trim(from: 0, to: weeklyBudget > 0 ? min(1, max(0, left / weeklyBudget)) : 0)
                 .stroke(Bucket.spending.color, style: StrokeStyle(lineWidth: Self.ringWidth, lineCap: .round))
                 .rotationEffect(.degrees(-90))
+                .animation(Motion.smooth, value: left)
             VStack(spacing: 0) {
-                Text(MoneyFormat.string(left)).font(.system(size: 18, weight: .bold)).monospacedDigit()
+                Text(MoneyFormat.string(left)).font(.system(size: 18, weight: .bold)).monospacedDigit().animatedNumber(left)
                 Text("left of \(MoneyFormat.whole(weeklyBudget))").font(.caption2).foregroundStyle(Theme.muted)
             }
         }
@@ -306,6 +313,7 @@ struct SpendingWeekCard: View {
 struct WeeklyPayCard: View {
     let yearPlan: YearPlan
     let paidByWeek: [Double]
+    @State private var reveal: Double = 0
 
     private struct Bar: Identifiable {
         let week: Int
@@ -318,9 +326,15 @@ struct WeeklyPayCard: View {
         let weeks = max(1, Int(yearPlan.inputs.weeksOfWork.rounded(.up)))
         return (1...weeks).map { week in
             week <= paidByWeek.count
-                ? Bar(week: week, amount: paidByWeek[week - 1], isPaid: true)
-                : Bar(week: week, amount: yearPlan.expectedPay(inWeek: week), isPaid: false)
+                ? Bar(week: week, amount: paidByWeek[week - 1] * reveal, isPaid: true)
+                : Bar(week: week, amount: yearPlan.expectedPay(inWeek: week) * reveal, isPaid: false)
         }
+    }
+
+    /// Fixed top of the axis, so it doesn't rescale while bars grow in.
+    private var yMax: Double {
+        let highest = max(paidByWeek.max() ?? 0, yearPlan.weeklyPay)
+        return max(100, (highest / 100).rounded(.up) * 100)
     }
 
     var body: some View {
@@ -332,7 +346,7 @@ struct WeeklyPayCard: View {
                 key(fill: Theme.ink, label: "Paid")
                 key(fill: Theme.muted.opacity(0.3), label: "Expected")
             }
-            chart
+            chart.revealOnAppear($reveal)
             HStack(spacing: 20) {
                 stat("Average", MoneyFormat.whole(average))
                 stat("Hours", "\(yearPlan.inputs.hoursPerWeek.formatted()) / wk")
@@ -359,6 +373,7 @@ struct WeeklyPayCard: View {
                 AxisValueLabel { Text(MoneyFormat.whole(value.as(Double.self) ?? 0)) }
             }
         }
+        .chartYScale(domain: 0...yMax)
         .frame(height: 180)
         .accessibilityLabel("Pay for each week of the summer job")
     }
@@ -419,12 +434,13 @@ struct MoveMoneyCard: View {
         Button(action: action) {
             HStack(spacing: 12) {
                 Image(systemName: done ? "checkmark.square.fill" : "square")
+                    .contentTransition(.symbolEffect(.replace))
                     .font(.system(size: 17))
                     .foregroundStyle(done ? Theme.ink : Theme.muted)
                 BucketDot(bucket: bucket)
                 Text("Move to \(bucket.name)")
                 Spacer()
-                Text(MoneyFormat.string(amount)).fontWeight(.semibold).monospacedDigit()
+                Text(MoneyFormat.string(amount)).fontWeight(.semibold).monospacedDigit().animatedNumber(amount)
             }
             .foregroundStyle(done ? Theme.muted : Theme.ink)
             .frame(minHeight: 36)

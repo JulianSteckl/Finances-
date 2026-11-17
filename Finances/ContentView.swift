@@ -31,7 +31,8 @@ enum AppSection: String, CaseIterable, Identifiable {
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var plans: [IncomePlan]
-    @Query(sort: \MoneyEntry.date, order: .reverse) private var entries: [MoneyEntry]
+    // Changes to the log animate every number, bar and row that depends on them.
+    @Query(sort: \MoneyEntry.date, order: .reverse, animation: Motion.smooth) private var entries: [MoneyEntry]
 
     @State private var section: AppSection = .overview
 
@@ -69,6 +70,7 @@ struct ContentView: View {
                         Text(MoneyFormat.whole(ledger.balance(of: bucket)))
                             .fontWeight(.semibold)
                             .monospacedDigit()
+                            .animatedNumber(ledger.balance(of: bucket))
                     }
                     .selectionDisabled()
                 }

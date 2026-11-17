@@ -61,6 +61,59 @@ extension Bucket {
     }
 }
 
+// MARK: - Motion
+
+/// Shared animation timings, kept short so the app stays quick.
+enum Motion {
+    static let quick = Animation.snappy(duration: 0.22)
+    static let smooth = Animation.smooth(duration: 0.4)
+    static let reveal = Animation.easeOut(duration: 0.7)
+    static let cardStagger: Double = 0.04
+    static let maxStaggeredCards = 6
+    static let appearOffset: CGFloat = 10
+}
+
+/// Fades and lifts a card in when its screen opens, a little after the one before it.
+struct AppearEffect: ViewModifier {
+    let order: Int
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var shown = false
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(shown ? 1 : 0)
+            .offset(y: shown || reduceMotion ? 0 : Motion.appearOffset)
+            .onAppear {
+                guard !shown else { return }
+                let delay = Double(min(order, Motion.maxStaggeredCards)) * Motion.cardStagger
+                withAnimation(reduceMotion ? nil : Motion.smooth.delay(delay)) { shown = true }
+            }
+    }
+}
+
+/// Goes from 0 to 1 once when a chart appears, so lines and bars can grow in.
+struct RevealProgress: ViewModifier {
+    @Binding var progress: Double
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content.onAppear {
+            guard progress < 1 else { return }
+            withAnimation(reduceMotion ? nil : Motion.reveal) { progress = 1 }
+        }
+    }
+}
+
+extension View {
+    func appearEffect(order: Int) -> some View { modifier(AppearEffect(order: order)) }
+    func revealOnAppear(_ progress: Binding<Double>) -> some View { modifier(RevealProgress(progress: progress)) }
+
+    /// Rolls digits when a number changes.
+    func animatedNumber<Value: Equatable>(_ value: Value) -> some View {
+        contentTransition(.numericText()).animation(Motion.smooth, value: value)
+    }
+}
+
 // MARK: - Shared building blocks
 
 struct CardStyle: ViewModifier {
@@ -120,6 +173,7 @@ struct KPITile: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(label).font(.caption.weight(.semibold)).foregroundStyle(Theme.muted)
             Text(value).font(.system(size: 26, weight: .bold)).monospacedDigit().tracking(-0.4)
+                .animatedNumber(value)
             if let progress {
                 ProgressBar(value: progress, tint: tint)
             }
@@ -144,14 +198,17 @@ struct ProgressBar: View {
     let value: Double
     var tint: Color = Theme.ink
     var height: CGFloat = 6
+    @State private var reveal: Double = 0
 
     var body: some View {
         GeometryReader { proxy in
             ZStack(alignment: .leading) {
                 Capsule().fill(Theme.chip)
-                Capsule().fill(tint).frame(width: proxy.size.width * min(1, max(0, value)))
+                Capsule().fill(tint).frame(width: proxy.size.width * min(1, max(0, value)) * reveal)
             }
         }
+        .revealOnAppear($reveal)
+        .animation(Motion.smooth, value: value)
         .frame(height: height)
         .accessibilityElement()
         .accessibilityValue("\(Int((min(1, max(0, value))) * 100)) percent")
@@ -176,6 +233,7 @@ struct BucketSplitBar: View {
         }
         .frame(height: height)
         .clipShape(RoundedRectangle(cornerRadius: height / 2))
+        .animation(Motion.smooth, value: shares)
         .accessibilityHidden(true)
     }
 }
@@ -264,6 +322,8 @@ struct PrimaryButtonStyle: ButtonStyle {
             .padding(.horizontal, 16)
             .frame(minHeight: 36)
             .background(Theme.ink.opacity(configuration.isPressed ? 0.8 : 1), in: RoundedRectangle(cornerRadius: 9))
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(Motion.quick, value: configuration.isPressed)
     }
 }
 
@@ -275,6 +335,8 @@ struct SecondaryButtonStyle: ButtonStyle {
             .padding(.horizontal, 16)
             .frame(minHeight: 36)
             .background(Theme.panel.opacity(configuration.isPressed ? 0.7 : 1), in: RoundedRectangle(cornerRadius: 9))
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(Motion.quick, value: configuration.isPressed)
             .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(Theme.line))
     }
 }

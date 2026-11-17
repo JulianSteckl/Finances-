@@ -16,14 +16,15 @@ struct YearPlanView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                header
-                results
+                header.appearEffect(order: 0)
+                results.appearEffect(order: 1)
                 if yearPlan.isOverBudget {
                     Text("This plan spends more than it earns. Lower spending or the savings goal, or add hours, so Stocks isn't below $0.")
                         .fontWeight(.medium)
                         .padding(14)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Theme.ink))
+                        .transition(.opacity.combined(with: .scale(scale: 0.98)))
                 }
                 ResponsiveRow(leadingWeight: 0.7) {
                     WhatIfCard(draft: $draft)
@@ -33,9 +34,11 @@ struct YearPlanView: View {
                         StocksGrowthCard(yearPlan: yearPlan)
                     }
                 }
-                MoneyInCard(yearPlan: yearPlan)
+                .appearEffect(order: 2)
+                MoneyInCard(yearPlan: yearPlan).appearEffect(order: 3)
             }
             .padding(Theme.pagePadding)
+            .animation(Motion.quick, value: yearPlan.isOverBudget)
         }
         .background(Theme.background)
         .navigationTitle("Year plan")
@@ -47,7 +50,7 @@ struct YearPlanView: View {
         HStack(alignment: .bottom, spacing: 10) {
             PageHeader(eyebrow: isDraftChanged ? "What-if · not saved yet" : "Your plan · 52 weeks", title: "Year plan")
             Spacer()
-            Button("Reset") { draft = saved }
+            Button("Reset") { withAnimation(Motion.smooth) { draft = saved } }
                 .buttonStyle(SecondaryButtonStyle())
                 .disabled(!isDraftChanged)
             Button("Save as my plan", action: saveDraft)
@@ -107,7 +110,7 @@ struct WhatIfCard: View {
             HStack {
                 Text(label).fontWeight(.medium)
                 Spacer()
-                Text(text).fontWeight(.bold).monospacedDigit()
+                Text(text).fontWeight(.bold).monospacedDigit().animatedNumber(text)
             }
             Slider(value: value, in: range, step: step) { Text(label) }
                 .labelsHidden()
@@ -138,6 +141,7 @@ struct MoneyFlowCard: View {
                         }
                         .font(.caption.weight(.semibold)).foregroundStyle(Theme.muted)
                         Text(MoneyFormat.whole(yearPlan.yearTotal(for: bucket))).font(.system(size: 17, weight: .bold)).monospacedDigit()
+                            .animatedNumber(yearPlan.yearTotal(for: bucket))
                         Text("\(Int(((shares[bucket] ?? 0) * 100).rounded()))%").font(.caption).foregroundStyle(Theme.muted)
                     }
                 }
@@ -149,6 +153,7 @@ struct MoneyFlowCard: View {
 
 struct StocksGrowthCard: View {
     let yearPlan: YearPlan
+    @State private var reveal: Double = 0
 
     private struct Point: Identifiable {
         let line: String
@@ -159,8 +164,8 @@ struct StocksGrowthCard: View {
 
     var body: some View {
         let growth = yearPlan.stocksOverYears()
-        let points = growth.repeating.enumerated().map { Point(line: "Repeat", year: $0.offset, value: $0.element) }
-            + growth.once.enumerated().map { Point(line: "Once", year: $0.offset, value: $0.element) }
+        let points = growth.repeating.enumerated().map { Point(line: "Repeat", year: $0.offset, value: $0.element * reveal) }
+            + growth.once.enumerated().map { Point(line: "Once", year: $0.offset, value: $0.element * reveal) }
         return VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline, spacing: 14) {
                 CardTitle(title: "Stocks over 5 years", trailing: MoneyFormat.whole(growth.repeating.last ?? 0))
@@ -186,7 +191,10 @@ struct StocksGrowthCard: View {
                     AxisValueLabel { Text(MoneyFormat.compact(value.as(Double.self) ?? 0)) }
                 }
             }
+            .chartYScale(domain: 0...yMax(growth.repeating))
+            .animation(Motion.smooth, value: growth.repeating)
             .frame(height: 200)
+            .revealOnAppear($reveal)
             .accessibilityLabel("Stocks over five years, repeating the plan each summer or investing this year only")
             HStack(spacing: 16) {
                 key(dashed: false, label: "Repeat this plan each summer")
@@ -196,6 +204,11 @@ struct StocksGrowthCard: View {
                 .font(.caption).foregroundStyle(Theme.muted)
         }
         .card()
+    }
+
+    /// Axis top rounded up to the next $2k, kept from the real values so it doesn't jump while lines grow in.
+    private func yMax(_ values: [Double]) -> Double {
+        max(1000, ((values.max() ?? 0) / 2000).rounded(.up) * 2000)
     }
 
     private func key(dashed: Bool, label: String) -> some View {

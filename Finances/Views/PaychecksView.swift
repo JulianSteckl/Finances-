@@ -16,10 +16,12 @@ struct PaychecksView: View {
         return ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 PageHeader(eyebrow: "Log a paycheck, purchase, gas fill-up or allowance", title: "Paychecks & log")
+                    .appearEffect(order: 0)
                 // The form keeps its own state, so typing only redraws the form and its split preview.
                 NewEntrySection(inputs: inputs, yearPlan: yearPlan, spentThisWeek: ledger.spentThisWeek, gasBalance: ledger.balance(of: .gas))
-                PayForecastCard(yearPlan: yearPlan, paidByWeek: paidByWeek)
-                logCard
+                    .appearEffect(order: 1)
+                PayForecastCard(yearPlan: yearPlan, paidByWeek: paidByWeek).appearEffect(order: 2)
+                logCard.appearEffect(order: 3)
             }
             .padding(Theme.pagePadding)
         }
@@ -56,6 +58,7 @@ struct PaychecksView: View {
                     .help("Delete entry")
                     .accessibilityLabel("Delete \(entry.title)")
                 }
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
         .card()
@@ -204,6 +207,7 @@ struct SplitPreviewCard: View {
                         }
                         .font(.caption.weight(.semibold)).foregroundStyle(Theme.muted)
                         Text(MoneyFormat.string(split[bucket] ?? 0)).font(.system(size: 20, weight: .bold)).monospacedDigit()
+                            .animatedNumber(split[bucket] ?? 0)
                         Text(bucket.rule).font(.caption).foregroundStyle(Theme.muted)
                     }
                     .padding(12)
