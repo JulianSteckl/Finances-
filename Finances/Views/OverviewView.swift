@@ -69,8 +69,7 @@ struct OverviewView: View {
             KPITile(label: "Earned this summer", value: MoneyFormat.whole(ledger.earned),
                     progress: yearPlan.jobTotal > 0 ? ledger.earned / yearPlan.jobTotal : 0,
                     footnote: "\(percent(ledger.earned, of: yearPlan.jobTotal)) of \(MoneyFormat.whole(yearPlan.jobTotal)) plan")
-            KPITile(label: "Projected at week 52", value: MoneyFormat.whole(context.savedAndInvestedAtYearEnd), progress: 1,
-                    footnote: "Stocks + savings with growth, at your real pace")
+            KPITile(label: "Projected at week 52", value: MoneyFormat.whole(context.savedAndInvestedAtYearEnd), progress: 1)
             KPITile(label: "Left to spend this week", value: MoneyFormat.string(week.left),
                     progress: week.available > 0 ? week.left / week.available : 0, tint: Bucket.spending.color,
                     footnote: "\(MoneyFormat.string(week.spentThisWeek)) spent of \(MoneyFormat.string(week.available))")
@@ -136,11 +135,8 @@ struct MoveMoneyCard: View {
             CardTitle(title: "Move your money", trailing: "\(doneCount) of \(Bucket.allCases.count) done")
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(MoneyFormat.string(waiting)).font(.system(size: 22, weight: .bold)).monospacedDigit().animatedNumber(waiting)
-                Text("waiting to be moved in Greenlight").foregroundStyle(Theme.muted)
+                Text("to move").foregroundStyle(Theme.muted)
             }
-            Text("Based on \(MoneyFormat.string(context.ledger.earned)) earned so far\(context.inputs.startingMoney > 0 ? " plus \(MoneyFormat.whole(context.inputs.startingMoney)) starting money" : ""). Each bucket gets its share of what you've really made.")
-                .font(.caption).foregroundStyle(Theme.muted)
-                .animatedNumber(context.ledger.earned)
             BucketSplitBar(shares: context.yearPlan.paycheckShares, height: 8)
             ForEach(Bucket.allCases) { bucket in
                 row(bucket: bucket, owed: context.stillToMove[bucket] ?? 0)
@@ -151,7 +147,6 @@ struct MoveMoneyCard: View {
 
     private func row(bucket: Bucket, owed: Double) -> some View {
         let done = owed < Self.doneThreshold
-        let moved = context.ledger.movedTo[bucket] ?? 0
         return Button {
             done ? onUndo(bucket) : onMove(owed, bucket)
         } label: {
@@ -161,10 +156,7 @@ struct MoveMoneyCard: View {
                     .font(.system(size: 17))
                     .foregroundStyle(done ? Theme.ink : Theme.muted)
                 BucketDot(bucket: bucket)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(done ? "\(bucket.name) is up to date" : "Move to \(bucket.name)")
-                    Text("\(MoneyFormat.string(moved)) moved so far").font(.caption).foregroundStyle(Theme.muted).animatedNumber(moved)
-                }
+                Text(bucket.name)
                 Spacer()
                 Text(done ? (owed < -Self.doneThreshold ? "\(MoneyFormat.string(-owed)) extra" : "Done") : MoneyFormat.string(owed))
                     .fontWeight(.semibold).monospacedDigit().animatedNumber(owed)
@@ -196,22 +188,12 @@ struct SpendingWeekCard: View {
                     line("Weekly amount", MoneyFormat.string(week.baseWeekly), week.baseWeekly)
                     line(week.rolledOver >= 0 ? "Rolled over" : "Over last weeks", MoneyFormat.signed(week.rolledOver), week.rolledOver)
                     line("A day for \(week.daysLeft) days", MoneyFormat.string(max(0, week.left) / Double(week.daysLeft)), week.left)
-                    Text("New week starts \(week.weekEnd.formatted(.dateTime.weekday(.wide)))")
-                        .font(.caption).foregroundStyle(Theme.muted)
                 }
                 .font(.callout)
             }
-            Text(scaleNote).font(.caption).foregroundStyle(Theme.muted).animatedNumber(context.incomeScale)
             purchases(week)
         }
         .card()
-    }
-
-    private var scaleNote: String {
-        let scale = context.incomeScale
-        if abs(scale - 1) < 0.005 { return "Unspent money carries over to next week. Pay is on plan, so the weekly amount is the full \(MoneyFormat.whole(context.inputs.spendingPerWeek))." }
-        let percent = Int((abs(1 - scale) * 100).rounded())
-        return "Unspent money carries over to next week. Pay is tracking \(percent)% \(scale < 1 ? "below" : "above") plan, so the weekly amount is adjusted to match."
     }
 
     private func line(_ label: String, _ value: String, _ number: Double) -> some View {
@@ -265,8 +247,6 @@ struct BucketsVsPlanCard: View {
     let context: MoneyContext
     @State private var reveal: Double = 0
 
-    private static let onTrackMargin = 0.97
-
     private struct Row: Identifiable {
         let bucket: Bucket
         let actual: Double
@@ -285,11 +265,11 @@ struct BucketsVsPlanCard: View {
             HStack(spacing: 14) {
                 HStack(spacing: 5) {
                     RoundedRectangle(cornerRadius: 2).fill(Theme.ink).frame(width: 10, height: 10)
-                    Text("In the bucket")
+                    Text("Balance")
                 }
                 HStack(spacing: 5) {
                     Rectangle().fill(Theme.ink).frame(width: 2, height: 12)
-                    Text("Where the plan says it should be")
+                    Text("Plan")
                 }
             }
             .font(.caption).foregroundStyle(Theme.muted)
@@ -320,17 +300,9 @@ struct BucketsVsPlanCard: View {
             }
             .frame(height: 10)
             .animation(Motion.smooth, value: actual)
-            Text(status(actual: actual, planned: planned))
-                .font(.caption).foregroundStyle(Theme.muted)
-                .animatedNumber(actual - planned)
         }
     }
 
-    private func status(actual: Double, planned: Double) -> String {
-        if planned < 1 { return actual < 1 ? "Nothing planned yet" : "\(MoneyFormat.whole(actual)) ahead of plan" }
-        if actual >= planned * Self.onTrackMargin { return actual > planned * (2 - Self.onTrackMargin) ? "\(MoneyFormat.whole(actual - planned)) ahead of plan" : "On track" }
-        return "\(MoneyFormat.whole(planned - actual)) behind plan"
-    }
 }
 
 struct WeeklyPayCard: View {

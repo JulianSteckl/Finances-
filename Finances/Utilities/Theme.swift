@@ -146,14 +146,16 @@ struct CardTitle: View {
 }
 
 struct PageHeader: View {
-    let eyebrow: String
+    var eyebrow: String?
     let title: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(eyebrow)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(Theme.muted)
+            if let eyebrow {
+                Text(eyebrow)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.muted)
+            }
             Text(title)
                 .font(.system(size: 26, weight: .bold))
                 .tracking(-0.4)
@@ -167,7 +169,7 @@ struct KPITile: View {
     let value: String
     var progress: Double?
     var tint: Color = Theme.ink
-    let footnote: String
+    var footnote: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -177,7 +179,9 @@ struct KPITile: View {
             if let progress {
                 ProgressBar(value: progress, tint: tint)
             }
-            Text(footnote).font(.caption).foregroundStyle(Theme.muted).lineLimit(2).animatedNumber(footnote)
+            if let footnote {
+                Text(footnote).font(.caption).foregroundStyle(Theme.muted).lineLimit(2).animatedNumber(footnote)
+            }
         }
         .card()
     }
@@ -187,7 +191,7 @@ struct KPITile: View {
 struct SummaryCard: View {
     let title: String
     let value: String
-    let footnote: String
+    var footnote: String?
 
     var body: some View {
         KPITile(label: title, value: value, footnote: footnote)

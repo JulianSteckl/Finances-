@@ -12,7 +12,7 @@ struct PaychecksView: View {
         let context = MoneyContext(plan: plan, ledger: ledger)
         return ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                PageHeader(eyebrow: "Log a paycheck, purchase, gas fill-up or allowance", title: "Paychecks & log")
+                PageHeader(title: "Paychecks & log")
                     .appearEffect(order: 0)
                 // The form keeps its own state, so typing only redraws the form and its split preview.
                 NewEntrySection(
@@ -187,15 +187,12 @@ struct SplitPreviewCard: View {
                         .font(.caption.weight(.semibold)).foregroundStyle(Theme.muted)
                         Text(MoneyFormat.string(split[bucket] ?? 0)).font(.system(size: 20, weight: .bold)).monospacedDigit()
                             .animatedNumber(split[bucket] ?? 0)
-                        Text(bucket.rule).font(.caption).foregroundStyle(Theme.muted)
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Theme.line))
                 }
             }
-            Text("Shares come from your plan. The Overview's \"Move your money\" list adds up every paycheck for you.")
-                .font(.caption).foregroundStyle(Theme.muted)
         }
         .card()
     }
@@ -402,34 +399,21 @@ struct SummerPayCard: View {
             CardTitle(title: "Summer pay")
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(MoneyFormat.whole(forecast.earned)).font(.system(size: 26, weight: .bold)).monospacedDigit().animatedNumber(forecast.earned)
-                Text("earned of your \(MoneyFormat.whole(plan)) plan").foregroundStyle(Theme.muted)
+                Text("of \(MoneyFormat.whole(plan))").foregroundStyle(Theme.muted)
             }
             paceBar(earned: forecast.earned, projected: forecast.projectedTotal, plan: plan)
             HStack(spacing: 16) {
                 key(Theme.ink, "Earned")
-                key(Theme.muted.opacity(0.3), "Still to come at your pace")
+                key(Theme.muted.opacity(0.3), "On pace for")
                 HStack(spacing: 5) {
                     Rectangle().fill(Theme.ink).frame(width: 2, height: 12)
                     Text("Plan")
                 }
             }
             .font(.caption).foregroundStyle(Theme.muted)
-            Text(explanation).fixedSize(horizontal: false, vertical: true).animatedNumber(forecast.projectedTotal)
         }
         .card()
         .revealOnAppear($reveal)
-    }
-
-    private var explanation: String {
-        let forecast = context.forecast
-        guard forecast.weeksWorked > 0 else {
-            return "Log your first paycheck and this shows whether you're on pace for your plan."
-        }
-        let difference = forecast.projectedTotal - context.yearPlan.jobTotal
-        let weeksLeft = Int(forecast.weeksLeft.rounded())
-        let pace = "You're making about \(MoneyFormat.whole(forecast.weeklyEstimate)) a week. With \(weeksLeft) week\(weeksLeft == 1 ? "" : "s") left, that's about \(MoneyFormat.whole(forecast.projectedTotal)) for the summer"
-        if abs(difference) < 1 { return pace + ", right on plan." }
-        return pace + ", \(MoneyFormat.whole(abs(difference))) \(difference > 0 ? "more" : "less") than planned. Spending and Stocks adjust to match."
     }
 
     private func paceBar(earned: Double, projected: Double, plan: Double) -> some View {

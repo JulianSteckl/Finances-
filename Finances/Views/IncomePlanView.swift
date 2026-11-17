@@ -61,7 +61,7 @@ struct IncomePlanView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                PageHeader(eyebrow: "Your schedule, pay and budget. Changes save when you leave this screen.", title: "Plan settings")
+                PageHeader(title: "Plan settings")
 
                 seasonSection
                 hoursSection
@@ -84,12 +84,6 @@ struct IncomePlanView: View {
                     .keyboardShortcut(.defaultAction)
                 }
 
-                GroupBox("How it’s used") {
-                    Text("Gas, spending and savings get fixed amounts. Stocks gets whatever is left. Each paycheck is split by those shares on the Overview checklist.")
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 4)
-                }
             }
             .padding(Theme.pagePadding)
             .frame(maxWidth: 760, alignment: .leading)
@@ -220,8 +214,8 @@ struct IncomePlanView: View {
                 moneyField("Allowance per week", value: $allowancePerWeek)
                 moneyField("Spending per week", value: $spendingPerWeek)
                 moneyField("Gas every two weeks", value: $gasPerTwoWeeks)
-                moneyField("Savings goal", value: $savingsGoal, note: "for the school year")
-                moneyField("Starting money", value: $startingMoney, note: "goes into Stocks")
+                moneyField("Savings goal", value: $savingsGoal)
+                moneyField("Starting money", value: $startingMoney)
                 percentField("Tax withheld", value: $taxPercent)
                 percentField("Stock return per year", value: $stockReturnPercent)
                 percentField("Savings reward per year", value: $savingsReturnPercent)
@@ -287,13 +281,13 @@ struct IncomePlanView: View {
                         footnote: "\(preview.paychecks.formatted(.number.precision(.fractionLength(0...1)))) paychecks, \(payFrequency.label.lowercased())"
                     )
                     SummaryCard(title: "Per week", value: MoneyFormat.string(preview.perWeek), footnote: weeksLabel)
-                    SummaryCard(title: "Per month", value: MoneyFormat.string(preview.perMonth), footnote: "Average month")
+                    SummaryCard(title: "Per month", value: MoneyFormat.string(preview.perMonth))
                     SummaryCard(
                         title: "Total hours",
                         value: preview.totalHours.formatted(.number.precision(.fractionLength(0...1))),
                         footnote: "\((hoursPerWeek.clampedNonNegative + overtimeHoursPerWeek.clampedNonNegative).formatted()) hrs/wk incl. overtime"
                     )
-                    SummaryCard(title: "Effective hourly", value: MoneyFormat.string(preview.effectiveHourly), footnote: "Including overtime, tips & bonuses")
+                    SummaryCard(title: "Effective hourly", value: MoneyFormat.string(preview.effectiveHourly))
                 }
             }
             .padding(.vertical, 8)

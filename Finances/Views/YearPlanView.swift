@@ -64,7 +64,7 @@ struct YearPlanView: View {
 
     private var header: some View {
         HStack(alignment: .bottom, spacing: 10) {
-            PageHeader(eyebrow: isDraftChanged ? "What-if · not saved yet. Move a slider, then save or undo." : "Your saved plan · move a slider to try a what-if", title: "Year plan")
+            PageHeader(eyebrow: isDraftChanged ? "Not saved" : nil, title: "Year plan")
             Spacer()
             if showSaved {
                 Label("Saved", systemImage: "checkmark.circle.fill")
@@ -91,9 +91,8 @@ struct YearPlanView: View {
             KPITile(label: "Total money in", value: MoneyFormat.whole(yearPlan.totalIn),
                     footnote: "\(MoneyFormat.whole(yearPlan.jobTotal)) job + \(MoneyFormat.whole(yearPlan.allowanceTotal)) allowance")
             KPITile(label: "Into stocks this year", value: MoneyFormat.whole(yearPlan.stocksTotal),
-                    footnote: isDraftChanged ? "\(stocksChange >= 0 ? "+" : "−")\(MoneyFormat.whole(abs(stocksChange))) vs your plan" : "Your plan")
-            KPITile(label: "Saved + invested at week 52", value: MoneyFormat.whole(yearPlan.savedAndInvestedAtYearEnd()),
-                    footnote: "Includes \(Self.percent(draft.stockReturn)) stocks, \(Self.percent(draft.savingsReturn)) savings growth")
+                    footnote: isDraftChanged ? "\(stocksChange >= 0 ? "+" : "−")\(MoneyFormat.whole(abs(stocksChange))) vs your plan" : nil)
+            KPITile(label: "Saved + invested at week 52", value: MoneyFormat.whole(yearPlan.savedAndInvestedAtYearEnd()))
             KPITile(label: "Each paycheck", value: MoneyFormat.whole(yearPlan.weeklyPay),
                     footnote: "\(draft.hoursPerWeek.formatted()) hrs × \(MoneyFormat.string(draft.hourlyWage))")
         }
@@ -122,22 +121,22 @@ struct WhatIfCard: View {
         VStack(alignment: .leading, spacing: 16) {
             CardTitle(title: "What if…")
             slider("Hourly pay", value: $draft.hourlyWage, in: 12...30, step: 0.5,
-                   text: MoneyFormat.string(draft.hourlyWage), hint: "Base plan: $20.00")
+                   text: MoneyFormat.string(draft.hourlyWage))
             slider("Hours per week", value: $draft.hoursPerWeek, in: 10...40, step: 0.5,
-                   text: "\(draft.hoursPerWeek.formatted()) hrs", hint: "Base: Mon–Thu 5.5 hrs, Fri 7.5 hrs = 29.5")
+                   text: "\(draft.hoursPerWeek.formatted()) hrs")
             slider("Weeks of work", value: $draft.weeksOfWork, in: 6...16, step: 1,
-                   text: "\(Int(draft.weeksOfWork)) weeks", hint: "Base plan: 13 weeks")
+                   text: "\(Int(draft.weeksOfWork)) weeks")
             slider("Spending per week", value: $draft.spendingPerWeek, in: 20...80, step: 5,
-                   text: MoneyFormat.whole(draft.spendingPerWeek), hint: "Every $10 less a week is $520 more in stocks")
+                   text: MoneyFormat.whole(draft.spendingPerWeek))
             slider("Savings goal", value: $draft.savingsGoal, in: 0...3000, step: 100,
-                   text: MoneyFormat.whole(draft.savingsGoal), hint: "Base plan: $1,600 for the school year")
+                   text: MoneyFormat.whole(draft.savingsGoal))
             slider("Stock return per year", value: $draft.stockReturn, in: 0...0.12, step: 0.005,
-                   text: YearPlanView.percent(draft.stockReturn), hint: "Base plan: 7%")
+                   text: YearPlanView.percent(draft.stockReturn))
         }
         .card()
     }
 
-    private func slider(_ label: String, value: Binding<Double>, in range: ClosedRange<Double>, step: Double, text: String, hint: String) -> some View {
+    private func slider(_ label: String, value: Binding<Double>, in range: ClosedRange<Double>, step: Double, text: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(label).fontWeight(.medium)
@@ -147,7 +146,6 @@ struct WhatIfCard: View {
             Slider(value: value, in: range, step: step) { Text(label) }
                 .labelsHidden()
                 .tint(Theme.ink)
-            Text(hint).font(.caption).foregroundStyle(Theme.muted)
         }
     }
 }
@@ -232,8 +230,6 @@ struct StocksGrowthCard: View {
                 key(dashed: false, label: "Repeat this plan each summer")
                 key(dashed: true, label: "This year only")
             }
-            Text("Assumes a steady \(YearPlanView.percent(yearPlan.inputs.stockReturn)) a year. Real stock returns go up and down, so treat this as a rough guide, not a promise.")
-                .font(.caption).foregroundStyle(Theme.muted)
         }
         .card()
     }
