@@ -1,0 +1,306 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10100000000000000000001 /* FinancesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000001 /* FinancesApp.swift */; };
+		A10100000000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000002 /* ContentView.swift */; };
+		A10100000000000000000003 /* IncomePlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000003 /* IncomePlan.swift */; };
+		A10100000000000000000004 /* BudgetCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000004 /* BudgetCategory.swift */; };
+		A10100000000000000000005 /* MoneyEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000005 /* MoneyEntry.swift */; };
+		A10100000000000000000006 /* OverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000006 /* OverviewView.swift */; };
+		A10100000000000000000007 /* IncomePlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000007 /* IncomePlanView.swift */; };
+		A10100000000000000000008 /* AllocationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000008 /* AllocationsView.swift */; };
+		A10100000000000000000009 /* TrackingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000009 /* TrackingView.swift */; };
+		A1010000000000000000000A /* CurrencyFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1010000000000000000000A /* CurrencyFormat.swift */; };
+		A1010000000000000000000B /* SeedData.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1010000000000000000000B /* SeedData.swift */; };
+		A1010000000000000000000C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B1010000000000000000000C /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		C10100000000000000000001 /* Finances.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Finances.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B10100000000000000000001 /* FinancesApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinancesApp.swift; sourceTree = "<group>"; };
+		B10100000000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		B10100000000000000000003 /* IncomePlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncomePlan.swift; sourceTree = "<group>"; };
+		B10100000000000000000004 /* BudgetCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetCategory.swift; sourceTree = "<group>"; };
+		B10100000000000000000005 /* MoneyEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoneyEntry.swift; sourceTree = "<group>"; };
+		B10100000000000000000006 /* OverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewView.swift; sourceTree = "<group>"; };
+		B10100000000000000000007 /* IncomePlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncomePlanView.swift; sourceTree = "<group>"; };
+		B10100000000000000000008 /* AllocationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllocationsView.swift; sourceTree = "<group>"; };
+		B10100000000000000000009 /* TrackingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackingView.swift; sourceTree = "<group>"; };
+		B1010000000000000000000A /* CurrencyFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyFormat.swift; sourceTree = "<group>"; };
+		B1010000000000000000000B /* SeedData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeedData.swift; sourceTree = "<group>"; };
+		B1010000000000000000000C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B1010000000000000000000D /* Finances.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Finances.entitlements; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D10100000000000000000003 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		E10100000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				E10100000000000000000002 /* Finances */,
+				E10100000000000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		E10100000000000000000002 /* Finances */ = {
+			isa = PBXGroup;
+			children = (
+				B10100000000000000000001 /* FinancesApp.swift */,
+				B10100000000000000000002 /* ContentView.swift */,
+				E10100000000000000000004 /* Models */,
+				E10100000000000000000005 /* Views */,
+				E10100000000000000000006 /* Utilities */,
+				B1010000000000000000000C /* Assets.xcassets */,
+				B1010000000000000000000D /* Finances.entitlements */,
+			);
+			path = Finances;
+			sourceTree = "<group>";
+		};
+		E10100000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				C10100000000000000000001 /* Finances.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E10100000000000000000004 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				B10100000000000000000003 /* IncomePlan.swift */,
+				B10100000000000000000004 /* BudgetCategory.swift */,
+				B10100000000000000000005 /* MoneyEntry.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		E10100000000000000000005 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				B10100000000000000000006 /* OverviewView.swift */,
+				B10100000000000000000007 /* IncomePlanView.swift */,
+				B10100000000000000000008 /* AllocationsView.swift */,
+				B10100000000000000000009 /* TrackingView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		E10100000000000000000006 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				B1010000000000000000000A /* CurrencyFormat.swift */,
+				B1010000000000000000000B /* SeedData.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		F10100000000000000000001 /* Finances */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F10100000000000000000004 /* Build configuration list for PBXNativeTarget "Finances" */;
+			buildPhases = (
+				D10100000000000000000001 /* Sources */,
+				D10100000000000000000003 /* Frameworks */,
+				D10100000000000000000002 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Finances;
+			productName = Finances;
+			productReference = C10100000000000000000001 /* Finances.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		F10100000000000000000002 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					F10100000000000000000001 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = F10100000000000000000003 /* Build configuration list for PBXProject "Finances" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = E10100000000000000000001;
+			productRefGroup = E10100000000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				F10100000000000000000001 /* Finances */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		D10100000000000000000002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1010000000000000000000C /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		D10100000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10100000000000000000001 /* FinancesApp.swift in Sources */,
+				A10100000000000000000002 /* ContentView.swift in Sources */,
+				A10100000000000000000003 /* IncomePlan.swift in Sources */,
+				A10100000000000000000004 /* BudgetCategory.swift in Sources */,
+				A10100000000000000000005 /* MoneyEntry.swift in Sources */,
+				A10100000000000000000006 /* OverviewView.swift in Sources */,
+				A10100000000000000000007 /* IncomePlanView.swift in Sources */,
+				A10100000000000000000008 /* AllocationsView.swift in Sources */,
+				A10100000000000000000009 /* TrackingView.swift in Sources */,
+				A1010000000000000000000A /* CurrencyFormat.swift in Sources */,
+				A1010000000000000000000B /* SeedData.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		G10100000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		G10100000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		G10100000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Finances/Finances.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Finances;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.juliansteckl.Finances;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		G10100000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Finances/Finances.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Finances;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.juliansteckl.Finances;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		F10100000000000000000003 /* Build configuration list for PBXProject "Finances" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				G10100000000000000000001 /* Debug */,
+				G10100000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F10100000000000000000004 /* Build configuration list for PBXNativeTarget "Finances" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				G10100000000000000000003 /* Debug */,
+				G10100000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = F10100000000000000000002 /* Project object */;
+}
