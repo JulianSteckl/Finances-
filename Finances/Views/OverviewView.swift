@@ -18,9 +18,9 @@ struct OverviewView: View {
                 kpis(context).appearEffect(order: 1)
                 // Short cards together, then the two bucket lists together, so rows line up.
                 ResponsiveRow(leadingWeight: 1) {
-                    SpendingWeekCard(context: context)
-                } trailing: {
                     WeeklyPayCard(context: context)
+                } trailing: {
+                    SpendingWeekCard(context: context)
                 }
                 .appearEffect(order: 2)
                 ResponsiveRow(leadingWeight: 1) {
@@ -176,32 +176,59 @@ struct MoveMoneyCard: View {
 struct SpendingWeekCard: View {
     let context: MoneyContext
 
-    private static let ringSize: CGFloat = 112
-    private static let ringWidth: CGFloat = 12
+    private static let ringSize: CGFloat = 132
+    private static let ringWidth: CGFloat = 13
+    private static let dayBarHeight: CGFloat = 64
+    private static let daysPerWeek = 7
+    private static let recentPurchaseCount = 3
+
+    private struct Day: Identifiable {
+        let date: Date
+        let spent: Double
+        let isToday: Bool
+        var id: Date { date }
+    }
 
     var body: some View {
         let week = context.spendingWeek
-        return VStack(alignment: .leading, spacing: 14) {
-            CardTitle(title: "Spending this week")
-            HStack(spacing: 18) {
+        let purchases = context.ledger.entries.filter { $0.kind == .spending && $0.date >= week.weekStart && $0.date < week.weekEnd }
+        return VStack(alignment: .leading, spacing: 18) {
+            CardTitle(title: "Spending this week", trailing: dateRange(week))
+            HStack(alignment: .center, spacing: 22) {
                 ring(week)
-                VStack(alignment: .leading, spacing: 4) {
-                    line("Weekly amount", MoneyFormat.string(week.baseWeekly), week.baseWeekly)
-                    line(week.rolledOver >= 0 ? "Rolled over" : "Over last weeks", MoneyFormat.signed(week.rolledOver), week.rolledOver)
-                    line("A day for \(week.daysLeft) days", MoneyFormat.string(max(0, week.left) / Double(week.daysLeft)), week.left)
-                }
-                .font(.callout)
+                stats(week)
             }
-            purchases(week)
+            dayStrip(week: week, purchases: purchases)
+            recent(purchases)
         }
         .card()
     }
 
-    private func line(_ label: String, _ value: String, _ number: Double) -> some View {
-        HStack(spacing: 6) {
-            Text(label).foregroundStyle(Theme.muted)
-            Text(value).fontWeight(.semibold).monospacedDigit().animatedNumber(number)
+    private func dateRange(_ week: SpendingWeek) -> String {
+        let lastDay = Calendar.current.date(byAdding: .day, value: -1, to: week.weekEnd) ?? week.weekEnd
+        return "\(week.weekStart.formatted(.dateTime.month(.abbreviated).day())) – \(lastDay.formatted(.dateTime.month(.abbreviated).day()))"
+    }
+
+    private func stats(_ week: SpendingWeek) -> some View {
+        Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 14) {
+            GridRow {
+                stat("Weekly amount", MoneyFormat.string(week.baseWeekly), week.baseWeekly)
+                stat(week.rolledOver >= 0 ? "Rolled over" : "Over last weeks", MoneyFormat.signed(week.rolledOver), week.rolledOver)
+            }
+            GridRow {
+                stat("Spent", MoneyFormat.string(week.spentThisWeek), week.spentThisWeek)
+                stat("Per day · \(week.daysLeft) left", MoneyFormat.string(max(0, week.left) / Double(week.daysLeft)), week.left)
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func stat(_ label: String, _ value: String, _ number: Double) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label).font(.caption.weight(.semibold)).foregroundStyle(Theme.muted)
+            Text(value).font(.system(size: 17, weight: .bold)).monospacedDigit().animatedNumber(number)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func ring(_ week: SpendingWeek) -> some View {
@@ -214,7 +241,7 @@ struct SpendingWeekCard: View {
                 .rotationEffect(.degrees(-90))
                 .animation(Motion.smooth, value: fraction)
             VStack(spacing: 0) {
-                Text(MoneyFormat.string(week.left)).font(.system(size: 18, weight: .bold)).monospacedDigit().animatedNumber(week.left)
+                Text(MoneyFormat.string(week.left)).font(.system(size: 20, weight: .bold)).monospacedDigit().animatedNumber(week.left)
                 Text("left of \(MoneyFormat.string(week.available))").font(.caption2).foregroundStyle(Theme.muted).animatedNumber(week.available)
             }
         }
@@ -222,13 +249,53 @@ struct SpendingWeekCard: View {
         .accessibilityElement(children: .combine)
     }
 
-    private func purchases(_ week: SpendingWeek) -> some View {
-        let items = context.ledger.entries.filter { $0.kind == .spending && $0.date >= week.weekStart && $0.date < week.weekEnd }
-        return VStack(spacing: 0) {
-            if items.isEmpty {
+    /// One bar per day of this week, with a line for an even daily share of the week's money.
+    private func dayStrip(week: SpendingWeek, purchases: [MoneyEntry]) -> some View {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: .now)
+        let days: [Day] = (0..<Self.daysPerWeek).map { offset in
+            let date = calendar.date(byAdding: .day, value: offset, to: week.weekStart) ?? week.weekStart
+            let spent = purchases.filter { calendar.isDate($0.date, inSameDayAs: date) }.reduce(0) { $0 + $1.amount }
+            return Day(date: date, spent: spent, isToday: calendar.isDate(date, inSameDayAs: today))
+        }
+        let dailyShare = week.available / Double(Self.daysPerWeek)
+        let scaleMax = max(1, max(days.map(\.spent).max() ?? 0, dailyShare * 1.5))
+        return VStack(alignment: .leading, spacing: 6) {
+            ZStack(alignment: .bottom) {
+                HStack(alignment: .bottom, spacing: 8) {
+                    ForEach(days) { day in
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(day.spent > 0 ? Bucket.spending.color : Theme.chip)
+                            .frame(height: max(4, Self.dayBarHeight * day.spent / scaleMax))
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+                Rectangle()
+                    .fill(Theme.ink.opacity(0.5))
+                    .frame(height: 1)
+                    .padding(.bottom, Self.dayBarHeight * dailyShare / scaleMax)
+            }
+            .frame(height: Self.dayBarHeight, alignment: .bottom)
+            .animation(Motion.smooth, value: days.map(\.spent))
+            HStack(spacing: 8) {
+                ForEach(days) { day in
+                    Text(day.date.formatted(.dateTime.weekday(.narrow)))
+                        .font(.caption.weight(day.isToday ? .bold : .regular))
+                        .foregroundStyle(day.isToday ? Theme.ink : Theme.muted)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+        }
+        .accessibilityElement()
+        .accessibilityLabel("Spending by day this week")
+    }
+
+    private func recent(_ purchases: [MoneyEntry]) -> some View {
+        VStack(spacing: 0) {
+            if purchases.isEmpty {
                 EmptyHint(text: "No purchases yet this week.")
             }
-            ForEach(items) { item in
+            ForEach(Array(purchases.prefix(Self.recentPurchaseCount))) { item in
                 Divider()
                 HStack {
                     Text(item.title)
@@ -236,7 +303,7 @@ struct SpendingWeekCard: View {
                     Spacer()
                     Text(MoneyFormat.signed(-item.amount)).fontWeight(.semibold).monospacedDigit()
                 }
-                .padding(.vertical, 8)
+                .padding(.vertical, 7)
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
