@@ -472,6 +472,7 @@ struct BucketsVsPlanCard: View {
                 Spacer(minLength: 4)
                 StatusChip(status: item.status)
             }
+            // Name at the top, amount in the middle, bar at the bottom, evenly spaced like the mockup.
             Spacer(minLength: 0)
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(MoneyFormat.whole(item.actual))
@@ -481,6 +482,7 @@ struct BucketsVsPlanCard: View {
                     .font(.caption).foregroundStyle(Theme.muted)
                     .animatedNumber(item.planned)
             }
+            Spacer(minLength: 0)
             GeometryReader { proxy in
                 let width = proxy.size.width
                 ZStack(alignment: .leading) {
