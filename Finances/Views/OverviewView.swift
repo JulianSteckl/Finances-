@@ -24,7 +24,7 @@ struct OverviewView: View {
                 }
                 .appearEffect(order: 2)
                 ResponsiveRow(leadingWeight: 1) {
-                    MoveMoneyCard(context: context, onMove: move, onUndo: undo)
+                    MoveMoneyCard(context: context, onMove: move, onUndo: undoLastMove)
                 } trailing: {
                     BucketsVsPlanCard(context: context)
                 }
@@ -96,19 +96,22 @@ struct OverviewView: View {
         .card()
     }
 
-    private func move(_ amount: Double, to bucket: Bucket) {
-        let rounded = (amount * 100).rounded() / 100
-        guard rounded > 0 else { return }
-        withAnimation(Motion.quick) {
-            modelContext.insert(MoneyEntry(amount: rounded, kind: .transfer, bucket: bucket))
+    private func move(_ amounts: [Bucket: Double]) {
+        let movedAt = Date.now
+        withAnimation(Motion.smooth) {
+            for (bucket, amount) in amounts {
+                let rounded = (amount * 100).rounded() / 100
+                guard rounded > 0 else { continue }
+                modelContext.insert(MoneyEntry(amount: rounded, kind: .transfer, bucket: bucket, createdAt: movedAt))
+            }
             modelContext.saveChanges()
         }
     }
 
-    private func undo(_ bucket: Bucket) {
-        guard let latest = ledger.latestTransfer(to: bucket) else { return }
-        withAnimation(Motion.quick) {
-            modelContext.delete(latest)
+    private func undoLastMove() {
+        guard !ledger.lastMove.isEmpty else { return }
+        withAnimation(Motion.smooth) {
+            ledger.lastMove.forEach(modelContext.delete)
             modelContext.saveChanges()
         }
     }
@@ -120,55 +123,79 @@ struct OverviewView: View {
 
 // MARK: - Cards
 
-/// Splits all pay earned so far (minus what's already moved) into the four buckets.
+/// One slider for how much is being moved now; the app splits it across the buckets.
 struct MoveMoneyCard: View {
     let context: MoneyContext
-    let onMove: (Double, Bucket) -> Void
-    let onUndo: (Bucket) -> Void
+    let onMove: ([Bucket: Double]) -> Void
+    let onUndo: () -> Void
 
-    /// Anything under a cent counts as done.
-    private static let doneThreshold = 0.005
+    /// Amount picked on the slider. `nil` means "everything that's waiting".
+    @State private var picked: Double?
+
+    private static let tileColumns = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
+    /// Below a cent there's nothing left to move.
+    private static let minimumMove = 0.01
 
     var body: some View {
         let waiting = context.waitingToMove
-        let doneCount = Bucket.allCases.filter { (context.stillToMove[$0] ?? 0) < Self.doneThreshold }.count
-        return VStack(alignment: .leading, spacing: 10) {
-            CardTitle(title: "Move your money", trailing: "\(doneCount) of \(Bucket.allCases.count) done")
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(MoneyFormat.string(waiting)).font(.system(size: 22, weight: .bold)).monospacedDigit().animatedNumber(waiting)
-                Text("to move").foregroundStyle(Theme.muted)
+        let moving = min(picked ?? waiting, waiting)
+        let split = MoveSplit.split(moving, stillToMove: context.stillToMove)
+        return VStack(alignment: .leading, spacing: 14) {
+            CardTitle(title: "Move your money", trailing: "\(MoneyFormat.string(waiting)) waiting")
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(MoneyFormat.string(moving)).font(.system(size: 28, weight: .bold)).monospacedDigit().animatedNumber(moving)
+                Text("moving now").foregroundStyle(Theme.muted)
             }
-            BucketSplitBar(shares: context.yearPlan.paycheckShares, height: 8)
-            ForEach(Bucket.allCases) { bucket in
-                row(bucket: bucket, owed: context.stillToMove[bucket] ?? 0)
+            Slider(value: Binding(get: { moving }, set: { picked = $0 }), in: 0...max(Self.minimumMove, waiting)) {
+                Text("Amount to move")
+            }
+            .labelsHidden()
+            .tint(Theme.ink)
+            .disabled(waiting < Self.minimumMove)
+            BucketSplitBar(shares: shares(of: split, total: moving), height: 10)
+            LazyVGrid(columns: Self.tileColumns, spacing: 10) {
+                ForEach(Bucket.allCases) { bucket in
+                    tile(bucket: bucket, amount: split[bucket] ?? 0)
+                }
+            }
+            HStack(spacing: 10) {
+                Button {
+                    onMove(split)
+                    picked = nil
+                } label: {
+                    Text(waiting < Self.minimumMove ? "All moved" : "Move \(MoneyFormat.string(moving))")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(PrimaryButtonStyle())
+                .disabled(moving < Self.minimumMove)
+                Button("Undo last move", action: onUndo)
+                    .buttonStyle(SecondaryButtonStyle())
+                    .disabled(context.ledger.lastMove.isEmpty)
             }
         }
         .card()
     }
 
-    private func row(bucket: Bucket, owed: Double) -> some View {
-        let done = owed < Self.doneThreshold
-        return Button {
-            done ? onUndo(bucket) : onMove(owed, bucket)
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: done ? "checkmark.square.fill" : "square")
-                    .contentTransition(.symbolEffect(.replace))
-                    .font(.system(size: 17))
-                    .foregroundStyle(done ? Theme.ink : Theme.muted)
+    private func shares(of split: [Bucket: Double], total: Double) -> [Bucket: Double] {
+        guard total > 0 else { return context.yearPlan.paycheckShares }
+        return split.mapValues { $0 / total }
+    }
+
+    private func tile(bucket: Bucket, amount: Double) -> some View {
+        let moved = context.ledger.movedTo[bucket] ?? 0
+        return VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 6) {
                 BucketDot(bucket: bucket)
                 Text(bucket.name)
-                Spacer()
-                Text(done ? (owed < -Self.doneThreshold ? "\(MoneyFormat.string(-owed)) extra" : "Done") : MoneyFormat.string(owed))
-                    .fontWeight(.semibold).monospacedDigit().animatedNumber(owed)
             }
-            .foregroundStyle(done ? Theme.muted : Theme.ink)
-            .frame(minHeight: 30)
-            .contentShape(Rectangle())
+            .font(.caption.weight(.semibold)).foregroundStyle(Theme.muted)
+            Text(MoneyFormat.string(amount)).font(.system(size: 18, weight: .bold)).monospacedDigit().animatedNumber(amount)
+            Text("\(MoneyFormat.string(moved)) moved").font(.caption).foregroundStyle(Theme.muted).animatedNumber(moved)
         }
-        .buttonStyle(.plain)
-        .help(done ? "Undo the last move into \(bucket.name)" : "Mark \(MoneyFormat.string(owed)) as moved to \(bucket.name)")
-        .accessibilityValue(done ? "Done" : "\(MoneyFormat.string(owed)) to move")
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Theme.line))
     }
 }
 

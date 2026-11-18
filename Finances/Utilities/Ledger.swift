@@ -27,7 +27,8 @@ struct Ledger {
     /// Purchases from Spending, any date.
     let purchases: [(date: Date, amount: Double)]
     private let balances: [Bucket: Double]
-    private let latestTransfers: [Bucket: MoneyEntry]
+    /// The transfers from the most recent "Move", so it can be undone in one go.
+    let lastMove: [MoneyEntry]
     private let transfersByPaycheck: [UUID: [MoneyEntry]]
 
     init(entries: [MoneyEntry], calendar: Calendar = .current) {
@@ -38,7 +39,7 @@ struct Ledger {
         var purchases: [(date: Date, amount: Double)] = []
         var balances: [Bucket: Double] = [:]
         var movedTo: [Bucket: Double] = [:]
-        var latestTransfers: [Bucket: MoneyEntry] = [:]
+        var lastMove: [MoneyEntry] = []
         var transfersByPaycheck: [UUID: [MoneyEntry]] = [:]
         for entry in entries {
             let bucket = entry.bucket
@@ -49,8 +50,11 @@ struct Ledger {
             case .transfer:
                 guard let bucket else { break }
                 movedTo[bucket, default: 0] += entry.amount
-                if latestTransfers[bucket].map({ entry.createdAt > $0.createdAt }) ?? true {
-                    latestTransfers[bucket] = entry
+                // A "Move" saves all its transfers with the same timestamp, so they group together.
+                if let newest = lastMove.first?.createdAt {
+                    if entry.createdAt > newest { lastMove = [entry] } else if entry.createdAt == newest { lastMove.append(entry) }
+                } else {
+                    lastMove = [entry]
                 }
                 if let paycheckID = entry.linkedPaycheckID { transfersByPaycheck[paycheckID, default: []].append(entry) }
             case .spending:
@@ -65,16 +69,13 @@ struct Ledger {
         self.movedTo = movedTo
         self.purchases = purchases
         self.balances = balances
-        self.latestTransfers = latestTransfers
+        self.lastMove = lastMove
         self.transfersByPaycheck = transfersByPaycheck
     }
 
     var latestPaycheck: MoneyEntry? { paychecks.last }
 
     func balance(of bucket: Bucket) -> Double { balances[bucket] ?? 0 }
-
-    /// The most recent move into a bucket, so a checklist tick can be undone.
-    func latestTransfer(to bucket: Bucket) -> MoneyEntry? { latestTransfers[bucket] }
 
     /// Pay earned in each week counted from `start` (index 0 = first week), up to the latest paycheck.
     func weeklyPay(from start: Date) -> [Double] {

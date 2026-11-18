@@ -158,6 +158,20 @@ extension YearPlan {
     }
 }
 
+/// Splits money being moved right now across the buckets.
+enum MoveSplit {
+    /// Each bucket gets a share in proportion to what it still needs, and never more than that.
+    static func split(_ amount: Double, stillToMove: [Bucket: Double]) -> [Bucket: Double] {
+        let needs = stillToMove.mapValues { max(0, $0) }
+        let totalNeed = needs.values.reduce(0, +)
+        guard totalNeed > 0, amount > 0 else {
+            return Dictionary(uniqueKeysWithValues: Bucket.allCases.map { ($0, 0) })
+        }
+        let moving = min(amount, totalNeed)
+        return needs.mapValues { $0 / totalNeed * moving }
+    }
+}
+
 /// This week's spending money, with whatever wasn't spent in earlier weeks rolled over.
 struct SpendingWeek {
     let baseWeekly: Double
