@@ -131,6 +131,9 @@ struct MoveMoneyCard: View {
 
     /// Amount picked on the slider. `nil` means "everything that's waiting".
     @State private var picked: Double?
+    /// True while the amount is being typed; otherwise it shows as a rolling number.
+    @State private var isTyping = false
+    @FocusState private var amountFocused: Bool
 
     private static let tileColumns = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
     /// Below a cent there's nothing left to move.
@@ -172,15 +175,34 @@ struct MoveMoneyCard: View {
         picked = min(waiting, max(0, (value * 100).rounded() / 100))
     }
 
-    /// The big number is also a text field: click it and type an exact amount.
+    /// Shows the amount as a rolling number; click it to type an exact amount (cents allowed).
     private func amountField(moving: Double, waiting: Double) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            TextField("Amount", value: Binding(get: { moving }, set: { setAmount($0, waiting: waiting) }), format: MoneyFormat.currency)
-                .textFieldStyle(.plain)
-                .font(.system(size: 28, weight: .bold))
-                .monospacedDigit()
-                .fixedSize()
+            if isTyping {
+                TextField("Amount", value: Binding(get: { moving }, set: { setAmount($0, waiting: waiting) }), format: MoneyFormat.currency)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 28, weight: .bold))
+                    .monospacedDigit()
+                    .fixedSize()
+                    .focused($amountFocused)
+                    .onSubmit { isTyping = false }
+                    .onChange(of: amountFocused) { _, focused in
+                        if !focused { isTyping = false }
+                    }
+                    .onAppear { amountFocused = true }
+            } else {
+                Button {
+                    isTyping = true
+                } label: {
+                    Text(MoneyFormat.string(moving))
+                        .font(.system(size: 28, weight: .bold))
+                        .monospacedDigit()
+                        .animatedNumber(moving)
+                }
+                .buttonStyle(.plain)
                 .help("Click to type an exact amount")
+                .accessibilityHint("Type an exact amount")
+            }
             Text("moving now").foregroundStyle(Theme.muted)
         }
     }
