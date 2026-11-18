@@ -425,15 +425,16 @@ struct SpendingWeekCard: View {
     }
 }
 
-/// Each bucket's real balance next to where the plan says it should be by now, with a status label.
+/// Four tiles, one per bucket: status, balance against the plan for now, and a bar with a plan mark.
 struct BucketsVsPlanCard: View {
     let context: MoneyContext
     @State private var reveal: Double = 0
 
-    /// Leaves room past the plan mark so a bucket that's ahead still fits.
-    private static let scaleHeadroom = 1.08
+    /// Each tile's bar scales to its own bucket, with room past the plan mark for a bucket that's ahead.
+    private static let barHeadroom = 1.1
+    private static let tileSpacing: CGFloat = 10
 
-    private struct Row: Identifiable {
+    private struct Tile: Identifiable {
         let bucket: Bucket
         let actual: Double
         let planned: Double
@@ -442,51 +443,63 @@ struct BucketsVsPlanCard: View {
     }
 
     var body: some View {
-        let rows = Bucket.allCases.map { Row(bucket: $0, actual: context.ledger.balance(of: $0), planned: context.plannedBalance(of: $0)) }
-        let scaleMax = max(1, (rows.map { max($0.actual, $0.planned) }.max() ?? 1) * Self.scaleHeadroom)
-        let onTrack = rows.filter { $0.status == .onTrack }.count
-        return VStack(alignment: .leading, spacing: 0) {
-            CardTitle(title: "Buckets vs plan", trailing: "\(onTrack) of \(rows.count) on track · week \(context.currentWeek)")
-            // Rows spread out evenly so they fill the card's height beside Move your money.
-            ForEach(rows) { item in
-                Spacer(minLength: 16)
-                row(item, scaleMax: scaleMax)
+        let tiles = Bucket.allCases.map { Tile(bucket: $0, actual: context.ledger.balance(of: $0), planned: context.plannedBalance(of: $0)) }
+        let onTrack = tiles.filter { $0.status == .onTrack }.count
+        return VStack(alignment: .leading, spacing: 12) {
+            CardTitle(title: "Buckets vs plan", trailing: "\(onTrack) of \(tiles.count) on track · week \(context.currentWeek)")
+            VStack(spacing: Self.tileSpacing) {
+                HStack(spacing: Self.tileSpacing) {
+                    tile(tiles[0])
+                    tile(tiles[1])
+                }
+                HStack(spacing: Self.tileSpacing) {
+                    tile(tiles[2])
+                    tile(tiles[3])
+                }
             }
-            Spacer(minLength: 0)
+            .frame(maxHeight: .infinity)
         }
         .card()
         .revealOnAppear($reveal)
     }
 
-    private func row(_ item: Row, scaleMax: Double) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .center, spacing: 8) {
+    private func tile(_ item: Tile) -> some View {
+        let barMax = max(1, max(item.planned, item.actual) * Self.barHeadroom)
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
                 BucketDot(bucket: item.bucket)
-                Text(item.bucket.name).fontWeight(.medium)
-                Spacer()
+                Text(item.bucket.name).fontWeight(.semibold)
+                Spacer(minLength: 4)
                 StatusChip(status: item.status)
+            }
+            Spacer(minLength: 0)
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(MoneyFormat.whole(item.actual))
-                    .fontWeight(.bold).monospacedDigit()
-                    .frame(minWidth: 64, alignment: .trailing)
+                    .font(.system(size: 20, weight: .bold)).monospacedDigit()
                     .animatedNumber(item.actual)
+                Text("of \(MoneyFormat.whole(item.planned))")
+                    .font(.caption).foregroundStyle(Theme.muted)
+                    .animatedNumber(item.planned)
             }
             GeometryReader { proxy in
                 let width = proxy.size.width
                 ZStack(alignment: .leading) {
                     Capsule().fill(Theme.chip)
                     Capsule().fill(item.bucket.color)
-                        .frame(width: width * min(1, max(0, item.actual) / scaleMax) * reveal)
+                        .frame(width: width * min(1, max(0, item.actual) / barMax) * reveal)
                     Rectangle().fill(Theme.ink)
-                        .frame(width: 2, height: 20)
-                        .offset(x: max(0, min(width - 2, width * item.planned / scaleMax - 1)))
+                        .frame(width: 2, height: 12)
+                        .offset(x: max(0, min(width - 2, width * item.planned / barMax - 1)))
                 }
             }
-            .frame(height: 12)
+            .frame(height: 6)
             .animation(Motion.smooth, value: item.actual)
-            Text("Plan \(MoneyFormat.whole(item.planned)) by now")
-                .font(.caption).foregroundStyle(Theme.muted)
-                .animatedNumber(item.planned)
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Theme.line))
+        .accessibilityElement(children: .combine)
     }
 }
 
