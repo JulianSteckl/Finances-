@@ -170,23 +170,6 @@ enum MoveSplit {
         let moving = min(amount, totalNeed)
         return needs.mapValues { $0 / totalNeed * moving }
     }
-
-    /// Slider step, so it lands on round amounts: $1 under $200, $5 under $2,000, otherwise $10.
-    static func step(forTotal total: Double) -> Double {
-        switch total {
-        case ..<200: 1
-        case ..<2000: 5
-        default: 10
-        }
-    }
-
-    /// The next round amount up or down from `amount`, kept within 0...total.
-    static func nudge(_ amount: Double, up: Bool, total: Double) -> Double {
-        let step = step(forTotal: total)
-        let steps = amount / step
-        let next = up ? (steps.rounded(.down) + 1) * step : (steps.rounded(.up) - 1) * step
-        return min(total, max(0, next))
-    }
 }
 
 /// This week's spending money, with whatever wasn't spent in earlier weeks rolled over.
