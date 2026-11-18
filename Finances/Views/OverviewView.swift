@@ -8,6 +8,9 @@ struct OverviewView: View {
     let ledger: Ledger
     let onLogEntry: () -> Void
 
+    /// Focus of the Move your money amount box, owned here so clicking anywhere on the page ends typing.
+    @FocusState private var amountFocused: Bool
+
     private static let recentCount = 6
 
     var body: some View {
@@ -24,7 +27,7 @@ struct OverviewView: View {
                 }
                 .appearEffect(order: 2)
                 ResponsiveRow(leadingWeight: 1) {
-                    MoveMoneyCard(context: context, onMove: move, onUndo: undoLastMove)
+                    MoveMoneyCard(context: context, amountFocused: $amountFocused, onMove: move, onUndo: undoLastMove)
                 } trailing: {
                     BucketsVsPlanCard(context: context)
                 }
@@ -32,6 +35,8 @@ struct OverviewView: View {
                 recentActivity.appearEffect(order: 4)
             }
             .padding(Theme.pagePadding)
+            .contentShape(Rectangle())
+            .onTapGesture { amountFocused = false }
         }
         .background(Theme.background)
         .navigationTitle("Overview")
@@ -126,14 +131,12 @@ struct OverviewView: View {
 /// One slider for how much is being moved now; the app splits it across the buckets.
 struct MoveMoneyCard: View {
     let context: MoneyContext
+    var amountFocused: FocusState<Bool>.Binding
     let onMove: ([Bucket: Double]) -> Void
     let onUndo: () -> Void
 
     /// Amount picked on the slider. `nil` means "everything that's waiting".
     @State private var picked: Double?
-    /// True while the amount is being typed; otherwise it shows as a rolling number.
-    @State private var isTyping = false
-    @FocusState private var amountFocused: Bool
 
     private static let tileColumns = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
     /// Below a cent there's nothing left to move.
@@ -155,6 +158,7 @@ struct MoveMoneyCard: View {
             }
             HStack(spacing: 10) {
                 Button {
+                    amountFocused.wrappedValue = false
                     onMove(split)
                     picked = nil
                 } label: {
@@ -176,23 +180,24 @@ struct MoveMoneyCard: View {
     }
 
     /// Shows the amount as a rolling number; click it to type an exact amount (cents allowed).
+    /// The text box is always there under the number, so Return, Escape or a click elsewhere
+    /// just ends focus and the rolling number shows again.
     private func amountField(moving: Double, waiting: Double) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            if isTyping {
+        let typing = amountFocused.wrappedValue
+        return HStack(alignment: .firstTextBaseline, spacing: 8) {
+            ZStack(alignment: .leading) {
                 TextField("Amount", value: Binding(get: { moving }, set: { setAmount($0, waiting: waiting) }), format: MoneyFormat.currency)
                     .textFieldStyle(.plain)
                     .font(.system(size: 28, weight: .bold))
                     .monospacedDigit()
                     .fixedSize()
-                    .focused($amountFocused)
-                    .onSubmit { isTyping = false }
-                    .onChange(of: amountFocused) { _, focused in
-                        if !focused { isTyping = false }
-                    }
-                    .onAppear { amountFocused = true }
-            } else {
+                    .focused(amountFocused)
+                    .onSubmit { amountFocused.wrappedValue = false }
+                    .onExitCommand { amountFocused.wrappedValue = false }
+                    .opacity(typing ? 1 : 0)
+                    .allowsHitTesting(typing)
                 Button {
-                    isTyping = true
+                    amountFocused.wrappedValue = true
                 } label: {
                     Text(MoneyFormat.string(moving))
                         .font(.system(size: 28, weight: .bold))
@@ -200,6 +205,8 @@ struct MoveMoneyCard: View {
                         .animatedNumber(moving)
                 }
                 .buttonStyle(.plain)
+                .opacity(typing ? 0 : 1)
+                .allowsHitTesting(!typing)
                 .help("Click to type an exact amount")
                 .accessibilityHint("Type an exact amount")
             }
