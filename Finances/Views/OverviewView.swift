@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 import SwiftData
 import Charts
 
@@ -7,9 +8,6 @@ struct OverviewView: View {
     let plan: IncomePlan?
     let ledger: Ledger
     let onLogEntry: () -> Void
-
-    /// Focus of the Move your money amount box, owned here so clicking anywhere on the page ends typing.
-    @FocusState private var amountFocused: Bool
 
     private static let recentCount = 6
 
@@ -27,7 +25,7 @@ struct OverviewView: View {
                 }
                 .appearEffect(order: 2)
                 ResponsiveRow(leadingWeight: 1) {
-                    MoveMoneyCard(context: context, amountFocused: $amountFocused, onMove: move, onUndo: undoLastMove)
+                    MoveMoneyCard(context: context, onMove: move, onUndo: undoLastMove)
                 } trailing: {
                     BucketsVsPlanCard(context: context)
                 }
@@ -35,8 +33,6 @@ struct OverviewView: View {
                 recentActivity.appearEffect(order: 4)
             }
             .padding(Theme.pagePadding)
-            .contentShape(Rectangle())
-            .onTapGesture { amountFocused = false }
         }
         .background(Theme.background)
         .navigationTitle("Overview")
@@ -131,12 +127,17 @@ struct OverviewView: View {
 /// One slider for how much is being moved now; the app splits it across the buckets.
 struct MoveMoneyCard: View {
     let context: MoneyContext
-    var amountFocused: FocusState<Bool>.Binding
     let onMove: ([Bucket: Double]) -> Void
     let onUndo: () -> Void
 
     /// Amount picked on the slider. `nil` means "everything that's waiting".
     @State private var picked: Double?
+    /// True while the amount is being typed; otherwise it shows as a rolling number.
+    @State private var isEditing = false
+    @FocusState private var amountFocused: Bool
+    /// Where the amount box is on screen, so a click anywhere else can end typing.
+    @State private var fieldFrame: CGRect = .zero
+    @State private var clickMonitor: Any?
 
     private static let tileColumns = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
     /// Below a cent there's nothing left to move.
@@ -158,7 +159,7 @@ struct MoveMoneyCard: View {
             }
             HStack(spacing: 10) {
                 Button {
-                    amountFocused.wrappedValue = false
+                    endEditing()
                     onMove(split)
                     picked = nil
                 } label: {
@@ -180,38 +181,76 @@ struct MoveMoneyCard: View {
     }
 
     /// Shows the amount as a rolling number; click it to type an exact amount (cents allowed).
-    /// The text box is always there under the number, so Return, Escape or a click elsewhere
-    /// just ends focus and the rolling number shows again.
+    /// Return, Escape, or a click anywhere outside the box ends typing.
     private func amountField(moving: Double, waiting: Double) -> some View {
-        let typing = amountFocused.wrappedValue
-        return HStack(alignment: .firstTextBaseline, spacing: 8) {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
             ZStack(alignment: .leading) {
                 TextField("Amount", value: Binding(get: { moving }, set: { setAmount($0, waiting: waiting) }), format: MoneyFormat.currency)
                     .textFieldStyle(.plain)
                     .font(.system(size: 28, weight: .bold))
                     .monospacedDigit()
                     .fixedSize()
-                    .focused(amountFocused)
-                    .onSubmit { amountFocused.wrappedValue = false }
-                    .onExitCommand { amountFocused.wrappedValue = false }
-                    .opacity(typing ? 1 : 0)
-                    .allowsHitTesting(typing)
-                Button {
-                    amountFocused.wrappedValue = true
-                } label: {
+                    .focused($amountFocused)
+                    .onSubmit(endEditing)
+                    .onExitCommand(perform: endEditing)
+                    .opacity(isEditing ? 1 : 0)
+                    .allowsHitTesting(isEditing)
+                    .background(GeometryReader { proxy in
+                        Color.clear
+                            .onAppear { fieldFrame = proxy.frame(in: .global) }
+                            .onChange(of: proxy.frame(in: .global)) { _, frame in fieldFrame = frame }
+                    })
+                Button(action: startEditing) {
                     Text(MoneyFormat.string(moving))
                         .font(.system(size: 28, weight: .bold))
                         .monospacedDigit()
                         .animatedNumber(moving)
                 }
                 .buttonStyle(.plain)
-                .opacity(typing ? 0 : 1)
-                .allowsHitTesting(!typing)
+                .opacity(isEditing ? 0 : 1)
+                .allowsHitTesting(!isEditing)
                 .help("Click to type an exact amount")
                 .accessibilityHint("Type an exact amount")
             }
             Text("moving now").foregroundStyle(Theme.muted)
         }
+        .onDisappear(perform: stopWatchingClicks)
+    }
+
+    private func startEditing() {
+        isEditing = true
+        amountFocused = true
+        watchForClicksOutside()
+    }
+
+    private func endEditing() {
+        guard isEditing else { return }
+        isEditing = false
+        amountFocused = false
+        // A Mac text box keeps the keyboard until something else takes it, so hand it back to the window.
+        NSApp.keyWindow?.makeFirstResponder(nil)
+        stopWatchingClicks()
+    }
+
+    /// A Mac doesn't move focus when you click empty space, so watch clicks while typing
+    /// and end typing when one lands outside the amount box.
+    private func watchForClicksOutside() {
+        guard clickMonitor == nil else { return }
+        clickMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { event in
+            if let contentView = event.window?.contentView {
+                let point = event.locationInWindow
+                let flipped = CGPoint(x: point.x, y: contentView.bounds.height - point.y)
+                if !fieldFrame.contains(flipped) {
+                    endEditing()
+                }
+            }
+            return event
+        }
+    }
+
+    private func stopWatchingClicks() {
+        if let clickMonitor { NSEvent.removeMonitor(clickMonitor) }
+        clickMonitor = nil
     }
 
     /// Plain slider in whole dollars. Typing in the amount above still allows cents.
