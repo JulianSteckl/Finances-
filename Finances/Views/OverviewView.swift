@@ -16,16 +16,17 @@ struct OverviewView: View {
             VStack(alignment: .leading, spacing: 20) {
                 header(context).appearEffect(order: 0)
                 kpis(context).appearEffect(order: 1)
-                ResponsiveRow(leadingWeight: 1.3) {
-                    MoveMoneyCard(context: context, onMove: move, onUndo: undo)
-                } trailing: {
+                // Short cards together, then the two bucket lists together, so rows line up.
+                ResponsiveRow(leadingWeight: 1) {
                     SpendingWeekCard(context: context)
-                }
-                .appearEffect(order: 2)
-                ResponsiveRow(leadingWeight: 1.3) {
-                    BucketsVsPlanCard(context: context)
                 } trailing: {
                     WeeklyPayCard(context: context)
+                }
+                .appearEffect(order: 2)
+                ResponsiveRow(leadingWeight: 1) {
+                    MoveMoneyCard(context: context, onMove: move, onUndo: undo)
+                } trailing: {
+                    BucketsVsPlanCard(context: context)
                 }
                 .appearEffect(order: 3)
                 recentActivity.appearEffect(order: 4)
@@ -62,7 +63,7 @@ struct OverviewView: View {
         let stocks = ledger.balance(of: .stocks)
         let savedGoal = yearPlan.yearTotal(for: .stocks) + yearPlan.yearTotal(for: .savings)
         let week = context.spendingWeek
-        return LazyVGrid(columns: [GridItem(.adaptive(minimum: 210), spacing: 14)], spacing: 14) {
+        return TileGridLayout {
             KPITile(label: "Saved + invested", value: MoneyFormat.whole(savings + stocks),
                     progress: savedGoal > 0 ? (savings + stocks) / savedGoal : 0, tint: Bucket.savings.color,
                     footnote: "Savings \(MoneyFormat.whole(savings)) · Stocks \(MoneyFormat.whole(stocks))")
@@ -162,7 +163,7 @@ struct MoveMoneyCard: View {
                     .fontWeight(.semibold).monospacedDigit().animatedNumber(owed)
             }
             .foregroundStyle(done ? Theme.muted : Theme.ink)
-            .frame(minHeight: 40)
+            .frame(minHeight: 30)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

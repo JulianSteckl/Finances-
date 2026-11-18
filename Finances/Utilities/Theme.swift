@@ -120,7 +120,8 @@ struct CardStyle: ViewModifier {
     func body(content: Content) -> some View {
         content
             .padding(Theme.cardPadding)
-            .frame(maxWidth: .infinity, alignment: .topLeading)
+            // Fills the height its row gives it, so cards side by side line up.
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(Theme.panel, in: RoundedRectangle(cornerRadius: Theme.cardRadius))
             .overlay(RoundedRectangle(cornerRadius: Theme.cardRadius).strokeBorder(Theme.line))
     }
@@ -306,14 +307,71 @@ struct SplitRowLayout: Layout {
         guard subviews.count == 2 else { return }
         if bounds.width >= minWideWidth {
             let columns = columnWidths(for: bounds.width)
-            subviews[0].place(at: bounds.origin, proposal: ProposedViewSize(width: columns.leading, height: nil))
+            // Both get the full row height, so the shorter card stretches to match.
+            subviews[0].place(at: bounds.origin, proposal: ProposedViewSize(width: columns.leading, height: bounds.height))
             subviews[1].place(at: CGPoint(x: bounds.minX + columns.leading + spacing, y: bounds.minY),
-                              proposal: ProposedViewSize(width: columns.trailing, height: nil))
+                              proposal: ProposedViewSize(width: columns.trailing, height: bounds.height))
         } else {
             let firstHeight = height(of: subviews[0], width: bounds.width)
             subviews[0].place(at: bounds.origin, proposal: ProposedViewSize(width: bounds.width, height: nil))
             subviews[1].place(at: CGPoint(x: bounds.minX, y: bounds.minY + firstHeight + spacing),
                               proposal: ProposedViewSize(width: bounds.width, height: nil))
+        }
+    }
+}
+
+/// Key-number tiles: all in one row when they fit, otherwise two per row. Every tile in a row has the same width and height.
+struct TileGridLayout: Layout {
+    var minTileWidth: CGFloat = 190
+    var spacing: CGFloat = 14
+
+    private func columnCount(width: CGFloat, count: Int) -> Int {
+        guard count > 0 else { return 1 }
+        let fitting = max(1, Int((width + spacing) / (minTileWidth + spacing)))
+        if fitting >= count { return count }
+        let half = (count + 1) / 2
+        return fitting >= half ? half : 1
+    }
+
+    private func arrangement(width: CGFloat, subviews: Subviews) -> (columns: Int, tileWidth: CGFloat, rowHeights: [CGFloat]) {
+        let columns = columnCount(width: width, count: subviews.count)
+        let tileWidth = max(0, (width - spacing * CGFloat(columns - 1)) / CGFloat(columns))
+        var rowHeights: [CGFloat] = []
+        for (index, subview) in subviews.enumerated() {
+            let height = subview.sizeThatFits(ProposedViewSize(width: tileWidth, height: nil)).height
+            if index % columns == 0 { rowHeights.append(height) } else { rowHeights[rowHeights.count - 1] = max(rowHeights.last ?? 0, height) }
+        }
+        return (columns, tileWidth, rowHeights)
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width ?? CGFloat(subviews.count) * (minTileWidth + spacing)
+        let layout = arrangement(width: width, subviews: subviews)
+        let height = layout.rowHeights.reduce(0, +) + spacing * CGFloat(max(0, layout.rowHeights.count - 1))
+        return CGSize(width: width, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let layout = arrangement(width: bounds.width, subviews: subviews)
+        var y = bounds.minY
+        for (index, subview) in subviews.enumerated() {
+            let row = index / layout.columns
+            let column = index % layout.columns
+            if column == 0 && row > 0 { y += layout.rowHeights[row - 1] + spacing }
+            let x = bounds.minX + CGFloat(column) * (layout.tileWidth + spacing)
+            subview.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(width: layout.tileWidth, height: layout.rowHeights[row]))
+        }
+    }
+}
+
+extension View {
+    /// The page header already shows the screen name, so the window toolbar doesn't repeat it.
+    @ViewBuilder
+    func hidingToolbarTitle() -> some View {
+        if #available(macOS 15.0, *) {
+            toolbar(removing: .title)
+        } else {
+            self
         }
     }
 }

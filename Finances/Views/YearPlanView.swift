@@ -87,7 +87,7 @@ struct YearPlanView: View {
 
     private var results: some View {
         let stocksChange = yearPlan.stocksTotal - YearPlan(saved).stocksTotal
-        return LazyVGrid(columns: [GridItem(.adaptive(minimum: 190), spacing: 14)], spacing: 14) {
+        return TileGridLayout {
             KPITile(label: "Total money in", value: MoneyFormat.whole(yearPlan.totalIn),
                     footnote: "\(MoneyFormat.whole(yearPlan.jobTotal)) job + \(MoneyFormat.whole(yearPlan.allowanceTotal)) allowance")
             KPITile(label: "Into stocks this year", value: MoneyFormat.whole(yearPlan.stocksTotal),

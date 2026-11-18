@@ -46,6 +46,7 @@ struct ContentView: View {
         } detail: {
             detail(ledger)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .hidingToolbarTitle()
         }
         .tint(Theme.ink)
         .onAppear {
