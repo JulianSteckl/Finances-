@@ -445,11 +445,14 @@ struct BucketsVsPlanCard: View {
         let rows = Bucket.allCases.map { Row(bucket: $0, actual: context.ledger.balance(of: $0), planned: context.plannedBalance(of: $0)) }
         let scaleMax = max(1, (rows.map { max($0.actual, $0.planned) }.max() ?? 1) * Self.scaleHeadroom)
         let onTrack = rows.filter { $0.status == .onTrack }.count
-        return VStack(alignment: .leading, spacing: 16) {
+        return VStack(alignment: .leading, spacing: 0) {
             CardTitle(title: "Buckets vs plan", trailing: "\(onTrack) of \(rows.count) on track · week \(context.currentWeek)")
+            // Rows spread out evenly so they fill the card's height beside Move your money.
             ForEach(rows) { item in
+                Spacer(minLength: 16)
                 row(item, scaleMax: scaleMax)
             }
+            Spacer(minLength: 0)
         }
         .card()
         .revealOnAppear($reveal)
@@ -474,11 +477,11 @@ struct BucketsVsPlanCard: View {
                     Capsule().fill(item.bucket.color)
                         .frame(width: width * min(1, max(0, item.actual) / scaleMax) * reveal)
                     Rectangle().fill(Theme.ink)
-                        .frame(width: 2, height: 16)
+                        .frame(width: 2, height: 20)
                         .offset(x: max(0, min(width - 2, width * item.planned / scaleMax - 1)))
                 }
             }
-            .frame(height: 10)
+            .frame(height: 12)
             .animation(Motion.smooth, value: item.actual)
             Text("Plan \(MoneyFormat.whole(item.planned)) by now")
                 .font(.caption).foregroundStyle(Theme.muted)
