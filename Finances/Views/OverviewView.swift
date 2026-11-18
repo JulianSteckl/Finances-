@@ -64,13 +64,13 @@ struct OverviewView: View {
         let savedGoal = yearPlan.yearTotal(for: .stocks) + yearPlan.yearTotal(for: .savings)
         let week = context.spendingWeek
         return TileGridLayout {
-            KPITile(label: "Saved + invested", value: MoneyFormat.whole(savings + stocks),
-                    progress: savedGoal > 0 ? (savings + stocks) / savedGoal : 0, tint: Bucket.savings.color,
-                    footnote: "Savings \(MoneyFormat.whole(savings)) · Stocks \(MoneyFormat.whole(stocks))")
+            KPITile(label: "Projected at week 52", value: MoneyFormat.whole(context.savedAndInvestedAtYearEnd), progress: 1)
             KPITile(label: "Earned this summer", value: MoneyFormat.whole(ledger.earned),
                     progress: yearPlan.jobTotal > 0 ? ledger.earned / yearPlan.jobTotal : 0,
                     footnote: "\(percent(ledger.earned, of: yearPlan.jobTotal)) of \(MoneyFormat.whole(yearPlan.jobTotal)) plan")
-            KPITile(label: "Projected at week 52", value: MoneyFormat.whole(context.savedAndInvestedAtYearEnd), progress: 1)
+            KPITile(label: "Saved + invested", value: MoneyFormat.whole(savings + stocks),
+                    progress: savedGoal > 0 ? (savings + stocks) / savedGoal : 0, tint: Bucket.savings.color,
+                    footnote: "Savings \(MoneyFormat.whole(savings)) · Stocks \(MoneyFormat.whole(stocks))")
             KPITile(label: "Left to spend this week", value: MoneyFormat.string(week.left),
                     progress: week.available > 0 ? week.left / week.available : 0, tint: Bucket.spending.color,
                     footnote: "\(MoneyFormat.string(week.spentThisWeek)) spent of \(MoneyFormat.string(week.available))")
