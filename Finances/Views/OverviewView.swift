@@ -472,15 +472,20 @@ struct BucketsVsPlanCard: View {
                 Spacer(minLength: 4)
                 StatusChip(status: item.status)
             }
-            // Name at the top, amount in the middle, bar at the bottom, evenly spaced like the mockup.
+            // Name at the top; amount, how far off plan, and the bar fill the rest.
             Spacer(minLength: 0)
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(MoneyFormat.whole(item.actual))
-                    .font(.system(size: 20, weight: .bold)).monospacedDigit()
-                    .animatedNumber(item.actual)
-                Text("of \(MoneyFormat.whole(item.planned))")
-                    .font(.caption).foregroundStyle(Theme.muted)
-                    .animatedNumber(item.planned)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(MoneyFormat.whole(item.actual))
+                        .font(.system(size: 26, weight: .bold)).monospacedDigit()
+                        .animatedNumber(item.actual)
+                    Text("of \(MoneyFormat.whole(item.planned))")
+                        .font(.callout).foregroundStyle(Theme.muted)
+                        .animatedNumber(item.planned)
+                }
+                Text(differenceLine(item))
+                    .font(.caption.weight(.medium)).foregroundStyle(Theme.muted)
+                    .animatedNumber(item.actual - item.planned)
             }
             Spacer(minLength: 0)
             GeometryReader { proxy in
@@ -490,11 +495,11 @@ struct BucketsVsPlanCard: View {
                     Capsule().fill(item.bucket.color)
                         .frame(width: width * min(1, max(0, item.actual) / barMax) * reveal)
                     Rectangle().fill(Theme.ink)
-                        .frame(width: 2, height: 12)
+                        .frame(width: 2, height: 16)
                         .offset(x: max(0, min(width - 2, width * item.planned / barMax - 1)))
                 }
             }
-            .frame(height: 6)
+            .frame(height: 8)
             .animation(Motion.smooth, value: item.actual)
         }
         .padding(.horizontal, 12)
@@ -502,6 +507,16 @@ struct BucketsVsPlanCard: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Theme.line))
         .accessibilityElement(children: .combine)
+    }
+
+    /// "−$116 to go · 69%" when behind, "+$12 extra · 104%" when ahead.
+    private func differenceLine(_ item: Tile) -> String {
+        let difference = item.actual - item.planned
+        let percent = item.planned >= 1 ? " · \(Int((item.actual / item.planned * 100).rounded()))%" : ""
+        if abs(difference) < 0.5 { return "Right on plan" + percent }
+        return difference < 0
+            ? "\(MoneyFormat.whole(-difference)) to go" + percent
+            : "\(MoneyFormat.whole(difference)) extra" + percent
     }
 }
 
