@@ -142,16 +142,9 @@ struct MoveMoneyCard: View {
         let split = MoveSplit.split(moving, stillToMove: context.stillToMove)
         return VStack(alignment: .leading, spacing: 14) {
             CardTitle(title: "Move your money", trailing: "\(MoneyFormat.string(waiting)) waiting")
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(MoneyFormat.string(moving)).font(.system(size: 28, weight: .bold)).monospacedDigit().animatedNumber(moving)
-                Text("moving now").foregroundStyle(Theme.muted)
-            }
-            Slider(value: Binding(get: { moving }, set: { picked = $0 }), in: 0...max(Self.minimumMove, waiting)) {
-                Text("Amount to move")
-            }
-            .labelsHidden()
-            .tint(Theme.ink)
-            .disabled(waiting < Self.minimumMove)
+            amountField(moving: moving, waiting: waiting)
+            sliderRow(moving: moving, waiting: waiting)
+            quickPicks(moving: moving, waiting: waiting)
             BucketSplitBar(shares: shares(of: split, total: moving), height: 10)
             LazyVGrid(columns: Self.tileColumns, spacing: 10) {
                 ForEach(Bucket.allCases) { bucket in
@@ -174,6 +167,83 @@ struct MoveMoneyCard: View {
             }
         }
         .card()
+    }
+
+    private func setAmount(_ value: Double, waiting: Double) {
+        picked = min(waiting, max(0, (value * 100).rounded() / 100))
+    }
+
+    /// The big number is also a text field: click it and type an exact amount.
+    private func amountField(moving: Double, waiting: Double) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            TextField("Amount", value: Binding(get: { moving }, set: { setAmount($0, waiting: waiting) }), format: MoneyFormat.currency)
+                .textFieldStyle(.plain)
+                .font(.system(size: 28, weight: .bold))
+                .monospacedDigit()
+                .fixedSize()
+                .help("Click to type an exact amount")
+            Image(systemName: "pencil").font(.caption).foregroundStyle(Theme.muted)
+            Text("moving now").foregroundStyle(Theme.muted)
+        }
+    }
+
+    /// Slider snaps to round amounts; the − and + buttons step one notch (hold to repeat).
+    private func sliderRow(moving: Double, waiting: Double) -> some View {
+        let step = MoveSplit.step(forTotal: waiting)
+        let disabled = waiting < Self.minimumMove
+        return HStack(spacing: 10) {
+            nudgeButton(systemImage: "minus", label: "Less by \(MoneyFormat.whole(step))") {
+                setAmount(MoveSplit.nudge(moving, up: false, total: waiting), waiting: waiting)
+            }
+            .disabled(disabled || moving <= 0)
+            Slider(value: Binding(get: { moving }, set: { setAmount($0, waiting: waiting) }),
+                   in: 0...max(step, waiting), step: step) {
+                Text("Amount to move")
+            }
+            .labelsHidden()
+            .tint(Theme.ink)
+            nudgeButton(systemImage: "plus", label: "More by \(MoneyFormat.whole(step))") {
+                setAmount(MoveSplit.nudge(moving, up: true, total: waiting), waiting: waiting)
+            }
+            .disabled(disabled || moving >= waiting)
+        }
+        .disabled(disabled)
+    }
+
+    private func nudgeButton(systemImage: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 12, weight: .bold))
+                .frame(width: 28, height: 28)
+                .background(Theme.chip, in: Circle())
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .buttonRepeatBehavior(.enabled)
+        .help(label)
+        .accessibilityLabel(label)
+    }
+
+    private static let quickPickFractions: [(label: String, fraction: Double)] = [("25%", 0.25), ("50%", 0.5), ("75%", 0.75), ("All", 1)]
+
+    private func quickPicks(moving: Double, waiting: Double) -> some View {
+        HStack(spacing: 8) {
+            ForEach(Self.quickPickFractions, id: \.label) { pick in
+                let target = (waiting * pick.fraction * 100).rounded() / 100
+                let selected = waiting > 0 && abs(moving - target) < 0.005
+                Button(pick.label) {
+                    withAnimation(Motion.quick) { setAmount(target, waiting: waiting) }
+                }
+                .buttonStyle(.plain)
+                .font(.callout.weight(.semibold))
+                .foregroundStyle(selected ? Theme.onInk : Theme.ink)
+                .padding(.horizontal, 14)
+                .frame(height: 28)
+                .background(selected ? Theme.ink : Theme.chip, in: Capsule())
+                .accessibilityAddTraits(selected ? .isSelected : [])
+            }
+        }
+        .disabled(waiting < Self.minimumMove)
     }
 
     private func shares(of split: [Bucket: Double], total: Double) -> [Bucket: Double] {
