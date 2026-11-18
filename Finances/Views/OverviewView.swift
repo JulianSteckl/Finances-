@@ -425,67 +425,90 @@ struct SpendingWeekCard: View {
     }
 }
 
-/// Each bucket's real balance next to where the plan says it should be by now.
+/// Each bucket's real balance next to where the plan says it should be by now, with a status label.
 struct BucketsVsPlanCard: View {
     let context: MoneyContext
     @State private var reveal: Double = 0
+
+    /// Leaves room past the plan mark so a bucket that's ahead still fits.
+    private static let scaleHeadroom = 1.08
 
     private struct Row: Identifiable {
         let bucket: Bucket
         let actual: Double
         let planned: Double
+        var status: PlanStatus { PlanStatus.of(actual: actual, planned: planned) }
         var id: Bucket { bucket }
     }
 
     var body: some View {
         let rows = Bucket.allCases.map { Row(bucket: $0, actual: context.ledger.balance(of: $0), planned: context.plannedBalance(of: $0)) }
-        let scaleMax = max(1, rows.map { max($0.actual, $0.planned) }.max() ?? 1)
-        return VStack(alignment: .leading, spacing: 14) {
-            CardTitle(title: "Buckets vs plan", trailing: "Week \(context.currentWeek)")
+        let scaleMax = max(1, (rows.map { max($0.actual, $0.planned) }.max() ?? 1) * Self.scaleHeadroom)
+        let onTrack = rows.filter { $0.status == .onTrack }.count
+        return VStack(alignment: .leading, spacing: 16) {
+            CardTitle(title: "Buckets vs plan", trailing: "\(onTrack) of \(rows.count) on track · week \(context.currentWeek)")
             ForEach(rows) { item in
-                row(bucket: item.bucket, actual: item.actual, planned: item.planned, scaleMax: scaleMax)
+                row(item, scaleMax: scaleMax)
             }
-            HStack(spacing: 14) {
-                HStack(spacing: 5) {
-                    RoundedRectangle(cornerRadius: 2).fill(Theme.ink).frame(width: 10, height: 10)
-                    Text("Balance")
-                }
-                HStack(spacing: 5) {
-                    Rectangle().fill(Theme.ink).frame(width: 2, height: 12)
-                    Text("Plan")
-                }
-            }
-            .font(.caption).foregroundStyle(Theme.muted)
         }
         .card()
         .revealOnAppear($reveal)
     }
 
-    private func row(bucket: Bucket, actual: Double, planned: Double, scaleMax: Double) -> some View {
+    private func row(_ item: Row, scaleMax: Double) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline) {
-                BucketDot(bucket: bucket)
-                Text(bucket.name).fontWeight(.medium)
+            HStack(alignment: .center, spacing: 8) {
+                BucketDot(bucket: item.bucket)
+                Text(item.bucket.name).fontWeight(.medium)
                 Spacer()
-                Text(MoneyFormat.whole(actual)).fontWeight(.semibold).monospacedDigit().animatedNumber(actual)
-                Text("/ \(MoneyFormat.whole(planned))").foregroundStyle(Theme.muted).monospacedDigit().animatedNumber(planned)
+                StatusChip(status: item.status)
+                Text(MoneyFormat.whole(item.actual))
+                    .fontWeight(.bold).monospacedDigit()
+                    .frame(minWidth: 64, alignment: .trailing)
+                    .animatedNumber(item.actual)
             }
             GeometryReader { proxy in
                 let width = proxy.size.width
                 ZStack(alignment: .leading) {
                     Capsule().fill(Theme.chip)
-                    Capsule().fill(bucket.color)
-                        .frame(width: width * min(1, max(0, actual) / scaleMax) * reveal)
+                    Capsule().fill(item.bucket.color)
+                        .frame(width: width * min(1, max(0, item.actual) / scaleMax) * reveal)
                     Rectangle().fill(Theme.ink)
-                        .frame(width: 2, height: 14)
-                        .offset(x: max(0, min(width - 2, width * planned / scaleMax - 1)))
+                        .frame(width: 2, height: 16)
+                        .offset(x: max(0, min(width - 2, width * item.planned / scaleMax - 1)))
                 }
             }
             .frame(height: 10)
-            .animation(Motion.smooth, value: actual)
+            .animation(Motion.smooth, value: item.actual)
+            Text("Plan \(MoneyFormat.whole(item.planned)) by now")
+                .font(.caption).foregroundStyle(Theme.muted)
+                .animatedNumber(item.planned)
         }
     }
+}
 
+/// "On track" in gray, "Behind" filled black so it stands out, "Ahead" outlined.
+struct StatusChip: View {
+    let status: PlanStatus
+
+    var body: some View {
+        Text(status.rawValue)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(status == .behind ? Theme.onInk : Theme.ink)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 2)
+            .background(background, in: Capsule())
+            .overlay(Capsule().strokeBorder(status == .ahead ? Theme.ink : Color.clear))
+            .animation(Motion.quick, value: status)
+    }
+
+    private var background: Color {
+        switch status {
+        case .behind: Theme.ink
+        case .onTrack: Theme.chip
+        case .ahead: Theme.panel
+        }
+    }
 }
 
 struct WeeklyPayCard: View {

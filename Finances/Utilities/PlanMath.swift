@@ -172,6 +172,23 @@ enum MoveSplit {
     }
 }
 
+/// How a bucket's balance compares with where the plan says it should be by now.
+enum PlanStatus: String {
+    case onTrack = "On track"
+    case behind = "Behind"
+    case ahead = "Ahead"
+
+    /// Within 5% of plan counts as on track.
+    static let margin = 0.05
+
+    static func of(actual: Double, planned: Double) -> PlanStatus {
+        guard planned >= 1 else { return actual >= 1 ? .ahead : .onTrack }
+        let ratio = actual / planned
+        if abs(ratio - 1) <= margin { return .onTrack }
+        return ratio > 1 ? .ahead : .behind
+    }
+}
+
 /// This week's spending money, with whatever wasn't spent in earlier weeks rolled over.
 struct SpendingWeek {
     let baseWeekly: Double
