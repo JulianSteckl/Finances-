@@ -428,12 +428,13 @@ struct WeeklyPayCard: View {
         }
         .chartYScale(domain: 0...yMax)
         .chartYAxis {
-            AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) { value in
+            AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { value in
                 AxisGridLine().foregroundStyle(Theme.line)
                 AxisValueLabel { Text(MoneyFormat.whole(value.as(Double.self) ?? 0)) }
             }
         }
-        .frame(height: 180)
+        // Grows to fill the card when the card beside it is taller.
+        .frame(minHeight: 180, maxHeight: .infinity)
         .accessibilityLabel("Pay for each week of the summer job")
     }
 
