@@ -131,6 +131,20 @@ extension View {
     func card() -> some View { modifier(CardStyle()) }
 }
 
+/// Makes a `GroupBox` look like the app's cards. It keeps its own height, so cards can stack in a column.
+struct CardGroupBoxStyle: GroupBoxStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            configuration.label.font(.system(size: 15, weight: .semibold))
+            configuration.content
+        }
+        .padding(Theme.cardPadding)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .background(Theme.panel, in: RoundedRectangle(cornerRadius: Theme.cardRadius))
+        .overlay(RoundedRectangle(cornerRadius: Theme.cardRadius).strokeBorder(Theme.line))
+    }
+}
+
 struct CardTitle: View {
     let title: String
     var trailing: String?
@@ -176,6 +190,7 @@ struct KPITile: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(label).font(.caption.weight(.semibold)).foregroundStyle(Theme.muted)
             Text(value).font(.system(size: 26, weight: .bold)).monospacedDigit().tracking(-0.4)
+                .lineLimit(1).minimumScaleFactor(0.6)
                 .animatedNumber(value)
             if let progress {
                 ProgressBar(value: progress, tint: tint)

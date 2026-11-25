@@ -65,14 +65,21 @@ struct IncomePlanView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 20) {
                 PageHeader(title: "Plan settings")
 
-                seasonSection
-                hoursSection
-                extrasSection
-                targetSection
-                budgetSection
+                ResponsiveRow(leadingWeight: 1) {
+                    VStack(spacing: Theme.gap) {
+                        seasonSection
+                        hoursSection
+                        extrasSection
+                    }
+                } trailing: {
+                    VStack(spacing: Theme.gap) {
+                        budgetSection
+                        targetSection
+                    }
+                }
                 breakdownSection
                 BackupSection(saveEdits: save, reload: load)
 
@@ -89,10 +96,10 @@ struct IncomePlanView: View {
                     .buttonStyle(PrimaryButtonStyle())
                     .keyboardShortcut(.defaultAction)
                 }
-
             }
             .padding(Theme.pagePadding)
-            .frame(maxWidth: 760, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .groupBoxStyle(CardGroupBoxStyle())
         }
         .background(Theme.background)
         .navigationTitle("Plan settings")
@@ -146,10 +153,9 @@ struct IncomePlanView: View {
                         }
                     }
                     .labelsHidden()
-                    .frame(maxWidth: 180)
+                    .frame(maxWidth: 180, alignment: .leading)
                 }
             }
-            .padding(.vertical, 8)
         }
     }
 
@@ -167,7 +173,6 @@ struct IncomePlanView: View {
                         .frame(maxWidth: 140)
                 }
             }
-            .padding(.vertical, 8)
         }
     }
 
@@ -196,11 +201,8 @@ struct IncomePlanView: View {
                     TextField("0", value: $oneTimeBonuses, format: .currency(code: currencyCode))
                         .textFieldStyle(.roundedBorder)
                         .frame(maxWidth: 140)
-                    Text("for the whole season")
-                        .foregroundStyle(.secondary)
                 }
             }
-            .padding(.vertical, 8)
         }
     }
 
@@ -217,7 +219,6 @@ struct IncomePlanView: View {
                     }
                 }
             }
-            .padding(.vertical, 8)
         }
     }
 
@@ -234,7 +235,7 @@ struct IncomePlanView: View {
                             }
                         }
                         .labelsHidden()
-                        .frame(maxWidth: 180)
+                        .frame(maxWidth: 180, alignment: .leading)
                     }
                 }
                 moneyField("Spending per week", value: $spendingPerWeek)
@@ -245,7 +246,6 @@ struct IncomePlanView: View {
                 percentField("Stock return per year", value: $stockReturnPercent)
                 percentField("Savings reward per year", value: $savingsReturnPercent)
             }
-            .padding(.vertical, 8)
         }
     }
 
@@ -299,7 +299,7 @@ struct IncomePlanView: View {
                         .monospacedDigit()
                 }
 
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                TileGridLayout(minTileWidth: 150, spacing: 12) {
                     SummaryCard(
                         title: "Per paycheck",
                         value: MoneyFormat.string(preview.perPaycheck),
@@ -315,7 +315,6 @@ struct IncomePlanView: View {
                     SummaryCard(title: "Effective hourly", value: MoneyFormat.string(preview.effectiveHourly))
                 }
             }
-            .padding(.vertical, 8)
         }
     }
 
@@ -357,6 +356,8 @@ struct IncomePlanView: View {
             content()
             Spacer(minLength: 0)
         }
+        // Boxes keep their normal height even when the column has room to spare.
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     private func load() {

@@ -34,7 +34,6 @@ struct BackupSection: View {
                     .font(.callout)
                 }
             }
-            .padding(.vertical, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .confirmationDialog(
