@@ -22,16 +22,24 @@ Native macOS app (SwiftUI + SwiftData) for planning and tracking summer-job mone
 3. In Xcode, select the **Finances** scheme and **My Mac** as the run destination.
 4. Press **⌘R** (Product → Run).
 
-On first launch the app seeds starter categories (**Stocks**, **Savings**, **Gas**) and a default income plan so you can start immediately.
+On first launch the app creates the base money plan ($20/hr, 29.5 hrs/week, 13 weeks, $15/week allowance, $45/week spending, $50 gas every two weeks, $1,600 savings goal) so you can start immediately.
 
-## What’s in v1
+## What’s in v2
+
+Black-and-white design with light and dark mode. Money goes into four buckets: **Stocks, Savings, Spending, Gas**. Gas, spending and savings get fixed amounts for the year; Stocks gets whatever is left.
 
 | Area | Behavior |
 |------|----------|
-| **Income plan** | Set hours/week, hourly wage, and season length — or a total summer target. |
-| **Allocations** | Split planned income by **percent** or **dollars** across categories; add/delete custom buckets; see planned vs remaining. |
-| **Tracking** | Log paychecks and spending (optionally tagged to a category); compare actuals on Overview. |
-| **Overview** | Planned vs earned, spending, allocation progress, and recent activity. |
+| **Overview** | Saved + invested, earned so far, projected total at week 52, and money left to spend this week. Year outlook chart for all four buckets, weekly pay chart, spending ring, "Move your money" checklist for the latest paycheck, and recent activity. |
+| **Paychecks & log** | Log paychecks (with hours), spending, gas and allowance. Live split preview, pay forecast chart, and the full log with delete confirmation. |
+| **Year plan** | What-if sliders (pay, hours, weeks, spending, savings goal, stock return), where the year's money goes, and stocks over 5 years. Save a what-if as your plan. |
+| **Plan settings** | Season dates, pay schedule, overtime, tips, bonuses, target override, and the year budget (allowance, spending, gas, savings goal, starting money, tax, returns). Saves when you leave the screen. |
+
+**Backup:** Plan settings can back up everything to a file, restore it (with undo), and export the log as a spreadsheet. Backup files are not encrypted.
+
+**Menu bar quick log:** while the app is running, the menu bar shows what's left to spend this week. Click it to log a purchase, gas or allowance.
+
+The sidebar shows each bucket's balance: money moved in from the checklist (or allowance), minus spending and gas.
 
 Data is stored locally with **SwiftData** (no account or server).
 
@@ -42,9 +50,9 @@ Finances.xcodeproj     Xcode project
 Finances/
   FinancesApp.swift    App entry + SwiftData container
   ContentView.swift    macOS NavigationSplitView shell
-  Models/              IncomePlan, BudgetCategory, MoneyEntry
-  Views/               Overview, Income, Allocations, Tracking
-  Utilities/           Formatting + seed/math helpers
+  Models/              IncomePlan, MoneyEntry, Bucket (BudgetCategory is legacy)
+  Views/               Overview, Paychecks, Year plan, Plan settings
+  Utilities/           Theme, PlanMath (year math), Ledger (balances), formatting, seed data
   Assets.xcassets
 ```
 

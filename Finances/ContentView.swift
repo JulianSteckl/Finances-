@@ -3,27 +3,27 @@ import SwiftData
 
 enum AppSection: String, CaseIterable, Identifiable {
     case overview
-    case income
-    case allocations
-    case tracking
+    case paychecks
+    case yearPlan
+    case settings
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
         case .overview: "Overview"
-        case .income: "Income Plan"
-        case .allocations: "Allocations"
-        case .tracking: "Tracking"
+        case .paychecks: "Paychecks & log"
+        case .yearPlan: "Year plan"
+        case .settings: "Plan settings"
         }
     }
 
     var systemImage: String {
         switch self {
-        case .overview: "house"
-        case .income: "briefcase"
-        case .allocations: "chart.pie"
-        case .tracking: "list.bullet.rectangle"
+        case .overview: "square.grid.2x2"
+        case .paychecks: "banknote"
+        case .yearPlan: "chart.line.uptrend.xyaxis"
+        case .settings: "slider.horizontal.3"
         }
     }
 }
@@ -31,40 +31,68 @@ enum AppSection: String, CaseIterable, Identifiable {
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var plans: [IncomePlan]
-    @Query(sort: \BudgetCategory.sortOrder) private var categories: [BudgetCategory]
-    @Query(sort: \MoneyEntry.date, order: .reverse) private var entries: [MoneyEntry]
+    // Changes to the log animate every number, bar and row that depends on them.
+    @Query(sort: \MoneyEntry.date, order: .reverse, animation: Motion.smooth) private var entries: [MoneyEntry]
 
     @State private var section: AppSection = .overview
 
     private var plan: IncomePlan? { plans.first }
 
     var body: some View {
-        NavigationSplitView {
-            List(selection: $section) {
+        // Built once per change to the log and shared by the sidebar and every screen.
+        let ledger = Ledger(entries: entries)
+        return NavigationSplitView {
+            sidebar(ledger)
+        } detail: {
+            detail(ledger)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .hidingToolbarTitle()
+        }
+        .tint(Theme.ink)
+        .onAppear {
+            SeedData.ensureDefaults(in: modelContext)
+            AutoAllowance.run(in: modelContext)
+        }
+    }
+
+    private func sidebar(_ ledger: Ledger) -> some View {
+        List(selection: $section) {
+            Section {
                 ForEach(AppSection.allCases) { item in
                     Label(item.title, systemImage: item.systemImage)
                         .tag(item)
                 }
             }
-            .navigationSplitViewColumnWidth(min: 180, ideal: 210)
-            .navigationTitle("Finances")
-        } detail: {
-            Group {
-                switch section {
-                case .overview:
-                    OverviewView(plan: plan, categories: categories, entries: entries)
-                case .income:
-                    IncomePlanView(plan: plan)
-                case .allocations:
-                    AllocationsView(plan: plan, categories: categories)
-                case .tracking:
-                    TrackingView(categories: categories, entries: entries)
+            Section("Buckets") {
+                ForEach(Bucket.allCases) { bucket in
+                    HStack(spacing: 10) {
+                        BucketDot(bucket: bucket)
+                        Text(bucket.name)
+                        Spacer()
+                        Text(MoneyFormat.whole(ledger.balance(of: bucket)))
+                            .fontWeight(.semibold)
+                            .monospacedDigit()
+                            .animatedNumber(ledger.balance(of: bucket))
+                    }
+                    .selectionDisabled()
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .onAppear {
-            SeedData.ensureDefaults(in: modelContext)
+        .navigationSplitViewColumnWidth(min: 200, ideal: 230)
+        .navigationTitle("Financial")
+    }
+
+    @ViewBuilder
+    private func detail(_ ledger: Ledger) -> some View {
+        switch section {
+        case .overview:
+            OverviewView(plan: plan, ledger: ledger) { section = .paychecks }
+        case .paychecks:
+            PaychecksView(plan: plan, ledger: ledger)
+        case .yearPlan:
+            YearPlanView(plan: plan)
+        case .settings:
+            IncomePlanView(plan: plan)
         }
     }
 }
