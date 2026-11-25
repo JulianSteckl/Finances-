@@ -39,6 +39,10 @@
 		A10100000000000000000014 /* AutoAllowance.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000014 /* AutoAllowance.swift */; };
 		A1020000000000000000000C /* AutoAllowance.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000014 /* AutoAllowance.swift */; };
 		A1020000000000000000000D /* AutoAllowanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10200000000000000000004 /* AutoAllowanceTests.swift */; };
+		A10100000000000000000015 /* Backup.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000015 /* Backup.swift */; };
+		A10100000000000000000016 /* BackupSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000016 /* BackupSection.swift */; };
+		A1020000000000000000000E /* Backup.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000015 /* Backup.swift */; };
+		A1020000000000000000000F /* BackupTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10200000000000000000005 /* BackupTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -68,6 +72,9 @@
 		B10200000000000000000003 /* QuickLogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickLogTests.swift; sourceTree = "<group>"; };
 		B10100000000000000000014 /* AutoAllowance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoAllowance.swift; sourceTree = "<group>"; };
 		B10200000000000000000004 /* AutoAllowanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoAllowanceTests.swift; sourceTree = "<group>"; };
+		B10100000000000000000015 /* Backup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Backup.swift; sourceTree = "<group>"; };
+		B10100000000000000000016 /* BackupSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupSection.swift; sourceTree = "<group>"; };
+		B10200000000000000000005 /* BackupTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -132,6 +139,7 @@
 				B10100000000000000000008 /* YearPlanView.swift */,
 				B10100000000000000000009 /* PaychecksView.swift */,
 				B10100000000000000000013 /* QuickLogView.swift */,
+				B10100000000000000000016 /* BackupSection.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -143,6 +151,7 @@
 				B1010000000000000000000B /* SeedData.swift */,
 				B10100000000000000000012 /* QuickLog.swift */,
 				B10100000000000000000014 /* AutoAllowance.swift */,
+				B10100000000000000000015 /* Backup.swift */,
 				B10100000000000000000011 /* Theme.swift */,
 				B10100000000000000000010 /* Ledger.swift */,
 				B1010000000000000000000F /* PlanMath.swift */,
@@ -157,6 +166,7 @@
 				B10200000000000000000002 /* MoneyContextTests.swift */,
 				B10200000000000000000003 /* QuickLogTests.swift */,
 				B10200000000000000000004 /* AutoAllowanceTests.swift */,
+				B10200000000000000000005 /* BackupTests.swift */,
 			);
 			path = FinancesTests;
 			sourceTree = "<group>";
@@ -263,6 +273,8 @@
 				A1010000000000000000000E /* Bucket.swift in Sources */,
 				A10100000000000000000012 /* QuickLog.swift in Sources */,
 				A10100000000000000000014 /* AutoAllowance.swift in Sources */,
+				A10100000000000000000015 /* Backup.swift in Sources */,
+				A10100000000000000000016 /* BackupSection.swift in Sources */,
 				A10100000000000000000013 /* QuickLogView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -277,6 +289,8 @@
 				A1020000000000000000000B /* QuickLogTests.swift in Sources */,
 				A1020000000000000000000C /* AutoAllowance.swift in Sources */,
 				A1020000000000000000000D /* AutoAllowanceTests.swift in Sources */,
+				A1020000000000000000000E /* Backup.swift in Sources */,
+				A1020000000000000000000F /* BackupTests.swift in Sources */,
 				A10200000000000000000003 /* IncomePlan.swift in Sources */,
 				A10200000000000000000004 /* BudgetCategory.swift in Sources */,
 				A10200000000000000000005 /* MoneyEntry.swift in Sources */,

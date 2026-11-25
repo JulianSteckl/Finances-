@@ -74,6 +74,7 @@ struct IncomePlanView: View {
                 targetSection
                 budgetSection
                 breakdownSection
+                BackupSection(saveEdits: save, reload: load)
 
                 HStack {
                     if let plan {
