@@ -231,10 +231,53 @@ struct SpendingWeek {
     }
 }
 
+/// Turns paychecks into pay per week of work.
+enum PayWeeks {
+    struct Paycheck {
+        /// 0-based week the paycheck is dated in.
+        let week: Int
+        let amount: Double
+        let hours: Double
+    }
+
+    /// Pay for each week of work. Paychecks dated in the same week are added up, then spread over as many
+    /// weeks as their hours cover, so several paychecks logged on one day don't look like one huge week.
+    /// Weeks without pay in between stay at zero.
+    static func spread(_ paychecks: [Paycheck], hoursPerWeek: Double, expectedPerWeek: Double) -> [Double] {
+        var weeks: [Double] = []
+        for (week, group) in Dictionary(grouping: paychecks, by: \.week).sorted(by: { $0.key < $1.key }) {
+            let amount = group.reduce(0) { $0 + $1.amount }
+            let covered = group.reduce(0) { $0 + weeksCovered(by: $1, hoursPerWeek: hoursPerWeek, expectedPerWeek: expectedPerWeek) }
+            let count = min(WeekCounter.weeksPerYear, max(1, Int(covered.rounded())))
+            if weeks.count < week { weeks.append(contentsOf: Array(repeating: 0, count: week - weeks.count)) }
+            weeks.append(contentsOf: Array(repeating: amount / Double(count), count: count))
+        }
+        return weeks
+    }
+
+    /// From hours when they were logged, otherwise from how many normal weeks of pay it is.
+    private static func weeksCovered(by paycheck: Paycheck, hoursPerWeek: Double, expectedPerWeek: Double) -> Double {
+        if paycheck.hours > 0, hoursPerWeek > 0 { return paycheck.hours / hoursPerWeek }
+        return expectedPerWeek > 0 ? paycheck.amount / expectedPerWeek : 1
+    }
+}
+
+enum WeekCounter {
+    static let weeksPerYear = 52
+
+    /// 1-based week number of `date`, counted from `start`, kept within 1...52.
+    static func week(of date: Date, from start: Date, calendar: Calendar = .current) -> Int {
+        let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: start), to: date).day ?? 0
+        return min(weeksPerYear, max(1, days / 7 + 1))
+    }
+}
+
 /// Forecast of summer pay once real paychecks come in, blending them with the base estimate.
 struct PayForecast {
     /// How many base-estimate weeks are mixed in, so one odd week doesn't swing the forecast.
     static let priorWeeks: Double = 3
+    /// A single week counts for at most this many normal weeks when estimating the pace.
+    static let oddWeekLimit: Double = 1.5
 
     let paid: [Double]
     let expectedPerWeek: Double
@@ -245,7 +288,13 @@ struct PayForecast {
     var weeksLeft: Double { max(0, totalWeeks - weeksWorked) }
 
     var weeklyEstimate: Double {
-        (earned + Self.priorWeeks * expectedPerWeek) / (weeksWorked + Self.priorWeeks)
+        let typicalPay = paid.reduce(0) { $0 + min($1, expectedPerWeek * Self.oddWeekLimit) }
+        return (typicalPay + Self.priorWeeks * expectedPerWeek) / (weeksWorked + Self.priorWeeks)
+    }
+
+    /// Typical weekly pay compared with the plan: 1 means on plan, 0.9 means 10% less.
+    var paceScale: Double {
+        expectedPerWeek > 0 ? weeklyEstimate / expectedPerWeek : 1
     }
 
     var projectedTotal: Double { earned + weeksLeft * weeklyEstimate }

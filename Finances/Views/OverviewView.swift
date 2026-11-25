@@ -433,6 +433,8 @@ struct BucketsVsPlanCard: View {
     /// Each tile's bar scales to its own bucket, with room past the plan mark for a bucket that's ahead.
     private static let barHeadroom = 1.1
     private static let tileSpacing: CGFloat = 10
+    private static let barHeight: CGFloat = 8
+    private static let planMarkHeight: CGFloat = 14
 
     private struct Tile: Identifiable {
         let bucket: Bucket
@@ -494,12 +496,15 @@ struct BucketsVsPlanCard: View {
                     Capsule().fill(Theme.chip)
                     Capsule().fill(item.bucket.color)
                         .frame(width: width * min(1, max(0, item.actual) / barMax) * reveal)
+                }
+                // In an overlay, so the taller mark doesn't stretch the bar.
+                .overlay(alignment: .leading) {
                     Rectangle().fill(Theme.ink)
-                        .frame(width: 2, height: 16)
+                        .frame(width: 2, height: Self.planMarkHeight)
                         .offset(x: max(0, min(width - 2, width * item.planned / barMax - 1)))
                 }
             }
-            .frame(height: 8)
+            .frame(height: Self.barHeight)
             .animation(Motion.smooth, value: item.actual)
         }
         .padding(.horizontal, 12)

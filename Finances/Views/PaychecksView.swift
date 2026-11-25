@@ -426,6 +426,9 @@ struct SummerPayCard: View {
                     .frame(width: width * min(1, projected / scaleMax) * reveal)
                 RoundedRectangle(cornerRadius: 6).fill(Theme.ink)
                     .frame(width: width * min(1, earned / scaleMax) * reveal)
+            }
+            // In an overlay, so the taller mark doesn't stretch the bar.
+            .overlay(alignment: .leading) {
                 Rectangle().fill(Theme.ink)
                     .frame(width: 2, height: 24)
                     .offset(x: max(0, min(width - 2, width * plan / scaleMax - 1)))
