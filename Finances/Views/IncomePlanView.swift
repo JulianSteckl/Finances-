@@ -7,6 +7,8 @@ struct IncomePlanView: View {
 
     // Season & pay schedule
     @State private var usesSeasonDates = false
+    @State private var knowsJobStart = false
+    @State private var jobStart: Date = .now
     @State private var seasonStart: Date = .now
     @State private var seasonEnd: Date = Calendar.current.date(byAdding: .weekOfYear, value: 12, to: .now) ?? .now
     @State private var weeksInSeason: Double = 12
@@ -123,6 +125,13 @@ struct IncomePlanView: View {
                         TextField("12", value: $weeksInSeason, format: .number)
                             .textFieldStyle(.roundedBorder)
                             .frame(maxWidth: 120)
+                    }
+                    Toggle("I know my job start date", isOn: $knowsJobStart)
+                    if knowsJobStart {
+                        labeledField("First day of work") {
+                            DatePicker("", selection: $jobStart, displayedComponents: .date)
+                                .labelsHidden()
+                        }
                     }
                 }
 
@@ -337,6 +346,8 @@ struct IncomePlanView: View {
     private func load() {
         guard let plan else { return }
         usesSeasonDates = plan.usesSeasonDates
+        knowsJobStart = plan.jobStart != nil
+        jobStart = plan.jobStart ?? Calendar.current.startOfDay(for: .now)
         seasonStart = plan.seasonStart
         seasonEnd = plan.seasonEnd
         weeksInSeason = plan.weeksInSeason
@@ -376,6 +387,7 @@ struct IncomePlanView: View {
         }
 
         assign(\.usesSeasonDates, usesSeasonDates)
+        assign(\.jobStart, knowsJobStart ? jobStart : nil)
         assign(\.seasonStart, seasonStart)
         assign(\.seasonEnd, max(seasonStart, seasonEnd))
         // Store the derived weeks so other screens can keep reading `weeksInSeason` directly.

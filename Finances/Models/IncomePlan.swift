@@ -62,6 +62,8 @@ final class IncomePlan {
     /// Yearly growth, 0...1.
     var stockReturn: Double = 0.07
     var savingsReturn: Double = 0.02
+    /// First day of the summer job when it's typed in on its own, without an end date.
+    var jobStart: Date?
 
     init(
         hoursPerWeek: Double = 29.5,
@@ -137,6 +139,7 @@ final class IncomePlan {
         if draft.weeksOfWork != weeksInSeason {
             // Typed-in weeks replace the date range, or the dates would recalculate it on the next save.
             weeksInSeason = draft.weeksOfWork
+            if usesSeasonDates { jobStart = seasonStart }
             usesSeasonDates = false
         }
         spendingPerWeek = draft.spendingPerWeek
@@ -145,9 +148,9 @@ final class IncomePlan {
         updatedAt = .now
     }
 
-    /// Start of the work season, used to number weeks.
-    func weekNumberingStart(firstPaycheck: Date?) -> Date {
-        usesSeasonDates ? seasonStart : (firstPaycheck ?? .now)
+    /// First day of the summer job, if it's known. Pay before it counts as odd jobs, not as weeks of work.
+    var jobStartDate: Date? {
+        usesSeasonDates ? seasonStart : jobStart
     }
 }
 

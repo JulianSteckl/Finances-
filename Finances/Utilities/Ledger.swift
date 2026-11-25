@@ -80,14 +80,22 @@ struct Ledger {
 
     func balance(of bucket: Bucket) -> Double { balances[bucket] ?? 0 }
 
-    /// Pay for each week of work counted from `start`, spread by the hours each paycheck covers.
-    func weeklyPay(from start: Date, hoursPerWeek: Double, expectedPerWeek: Double) -> [Double] {
-        let startDay = calendar.startOfDay(for: start)
-        let dated = paychecks.map { paycheck in
-            let days = calendar.dateComponents([.day], from: startDay, to: paycheck.date).day ?? 0
-            return PayWeeks.Paycheck(week: max(0, days / 7), amount: paycheck.amount, hours: paycheck.hours)
+    /// Summer job pay per week of work, and pay from odd jobs outside it. Without a job date, all pay is odd jobs.
+    func pay(jobStart: Date?, inputs: PlanInputs, expectedPerWeek: Double) -> (byWeek: [Double], other: Double) {
+        guard let jobStart else { return ([], earned) }
+        let startDay = calendar.startOfDay(for: jobStart)
+        var fromJob: [PayWeeks.Paycheck] = []
+        var other = 0.0
+        for paycheck in paychecks {
+            let days = calendar.dateComponents([.day], from: startDay, to: calendar.startOfDay(for: paycheck.date)).day ?? 0
+            let week = days < 0 ? -1 : days / 7
+            if PayWeeks.isFromJob(week: week, weeksOfWork: inputs.weeksOfWork) {
+                fromJob.append(.init(week: week, amount: paycheck.amount, hours: paycheck.hours))
+            } else {
+                other += paycheck.amount
+            }
         }
-        return PayWeeks.spread(dated, hoursPerWeek: hoursPerWeek, expectedPerWeek: expectedPerWeek)
+        return (PayWeeks.spread(fromJob, hoursPerWeek: inputs.hoursPerWeek, expectedPerWeek: expectedPerWeek), other)
     }
 
     /// Older checklist moves that were tied to one paycheck, so they can be removed with it.
@@ -101,8 +109,13 @@ struct MoneyContext {
     let inputs: PlanInputs
     let yearPlan: YearPlan
     let ledger: Ledger
-    let start: Date
+    /// First day of the summer job, if it's known.
+    let jobStart: Date?
+    /// Summer job pay for each week of work.
     let paidByWeek: [Double]
+    /// Pay from odd jobs before or after the summer job.
+    let otherPay: Double
+    /// Week of the summer job's year, or 0 before it starts.
     let currentWeek: Int
     let forecast: PayForecast
     /// Typical weekly pay compared with the plan: 1 means on plan, 0.9 means 10% less.
@@ -115,26 +128,30 @@ struct MoneyContext {
     init(plan: IncomePlan?, ledger: Ledger, now: Date = .now) {
         let inputs = plan?.inputs ?? .base
         let yearPlan = YearPlan(inputs)
-        let start = plan?.weekNumberingStart(firstPaycheck: ledger.paychecks.first?.date) ?? now
-        let paidByWeek = ledger.weeklyPay(from: start, hoursPerWeek: inputs.hoursPerWeek, expectedPerWeek: yearPlan.weeklyPay)
+        let jobStart = plan?.jobStartDate
+        let (paidByWeek, otherPay) = ledger.pay(jobStart: jobStart, inputs: inputs, expectedPerWeek: yearPlan.weeklyPay)
+        // Spending weeks run all year, from the first money in or the job's start, whichever is earlier.
+        let spendingStart = min(now, [ledger.paychecks.first?.date, jobStart].compactMap { $0 }.min() ?? now)
         let forecast = PayForecast(paid: paidByWeek, expectedPerWeek: yearPlan.weeklyPay, totalWeeks: inputs.weeksOfWork)
         let incomeScale = forecast.paceScale
 
         self.inputs = inputs
         self.yearPlan = yearPlan
         self.ledger = ledger
-        self.start = start
+        self.jobStart = jobStart
         self.paidByWeek = paidByWeek
+        self.otherPay = otherPay
         // Paychecks logged ahead of the calendar count as weeks already worked.
-        self.currentWeek = min(WeekCounter.weeksPerYear, max(WeekCounter.week(of: now, from: start, calendar: ledger.calendar), paidByWeek.count))
+        let calendarWeek = jobStart.map { WeekCounter.week(of: now, from: $0, calendar: ledger.calendar) } ?? 0
+        self.currentWeek = min(WeekCounter.weeksPerYear, max(calendarWeek, paidByWeek.count))
         self.forecast = forecast
         self.incomeScale = incomeScale
         self.spendingWeek = SpendingWeek(
-            purchases: ledger.purchases, start: start, now: now,
+            purchases: ledger.purchases, start: spendingStart, now: now,
             baseWeekly: yearPlan.weeklySpending(incomeScale: incomeScale),
             bucketBalance: ledger.balance(of: .spending), calendar: ledger.calendar
         )
-        self.projection = yearPlan.projection(paid: paidByWeek)
+        self.projection = yearPlan.projection(paid: paidByWeek, otherPay: otherPay)
         self.stillToMove = yearPlan.stillToMove(earned: ledger.earned, movedTo: ledger.movedTo)
     }
 
@@ -148,6 +165,9 @@ struct MoneyContext {
     var savedAndInvestedAtYearEnd: Double {
         (projection[.stocks]?.last ?? 0) + (projection[.savings]?.last ?? 0)
     }
+
+    /// Pay from the summer job alone.
+    var jobPay: Double { forecast.earned }
 
     var waitingToMove: Double {
         stillToMove.values.reduce(0) { $0 + max(0, $1) }

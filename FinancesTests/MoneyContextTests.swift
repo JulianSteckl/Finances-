@@ -16,6 +16,7 @@ final class MoneyContextTests: XCTestCase {
     /// $25/hr × 30 hrs × 12 weeks = $9,000, so a normal week is $750.
     private func plan() -> IncomePlan {
         let plan = IncomePlan(hoursPerWeek: 30, hourlyWage: 25, weeksInSeason: 12)
+        plan.jobStart = start
         container.mainContext.insert(plan)
         return plan
     }
@@ -101,5 +102,71 @@ final class MoneyContextTests: XCTestCase {
     func testPurchaseIsOnlySubtractedOnce() {
         let entries = [paycheck(750, hours: 30, day: 0), entry(.transfer, 30, day: 0, bucket: .spending), entry(.spending, 10, day: 1)]
         XCTAssertEqual(context(entries, day: 2).spendingWeek.left, 20, accuracy: 0.01)
+    }
+
+    // MARK: - Odd jobs before the summer job
+
+    /// The base plan ($20/hr × 29.5 hrs × 13 weeks) with two odd jobs four weeks apart and no job date.
+    private func oddJobs() -> MoneyContext {
+        let plan = IncomePlan()
+        container.mainContext.insert(plan)
+        let entries = [paycheck(100, hours: 5, day: 0), paycheck(200, hours: 10, day: 28)]
+        return MoneyContext(plan: plan, ledger: Ledger(entries: entries), now: calendar.date(byAdding: .day, value: 29, to: start)!)
+    }
+
+    func testOddJobsDoNotLowerWeeklySpending() { XCTAssertEqual(oddJobs().spendingWeek.baseWeekly, 45, accuracy: 0.01) }
+    func testOddJobsDoNotLowerTheSummerForecast() { XCTAssertEqual(oddJobs().forecast.projectedTotal, 7670, accuracy: 0.01) }
+    func testOddJobsAreStillWaitingToBeMoved() { XCTAssertEqual(oddJobs().waitingToMove, 300, accuracy: 0.01) }
+
+    func testOddJobsAreNotWeeksOfWork() { XCTAssertEqual(oddJobs().paidByWeek, []) }
+    func testOddJobsCountAsOtherPay() { XCTAssertEqual(oddJobs().otherPay, 300, accuracy: 0.01) }
+    func testWithoutAJobDateTheJobHasNotStarted() { XCTAssertEqual(oddJobs().currentWeek, 0) }
+
+    func testOddJobsRaiseTheYearEndProjection() {
+        XCTAssertGreaterThan(oddJobs().savedAndInvestedAtYearEnd, YearPlan(.base).savedAndInvestedAtYearEnd())
+    }
+
+    func testOnlyPayFromTheJobStartCountsTowardTheJob() {
+        let result = context([paycheck(100, hours: 5, day: -30), paycheck(750, hours: 30, day: 4)], day: 5)
+        XCTAssertEqual(result.paidByWeek, [750])
+        XCTAssertEqual(result.otherPay, 100, accuracy: 0.01)
+    }
+
+    func testFutureJobStartIsWeekZero() { XCTAssertEqual(context([], day: -10).currentWeek, 0) }
+    func testJobStartDayIsWeekOne() { XCTAssertEqual(context([], day: 0).currentWeek, 1) }
+
+    func testWaitingForTheFirstPaycheckDoesNotLowerThePace() {
+        let result = context([paycheck(750, hours: 30, day: 11)], day: 11)
+        XCTAssertEqual(result.spendingWeek.baseWeekly, 45, accuracy: 0.01)
+    }
+
+    func testBiweeklyPaycheckFillsTheWeeksItCovers() {
+        let result = context([paycheck(1500, hours: 60, day: 11), paycheck(1500, hours: 60, day: 25)], day: 26)
+        XCTAssertEqual(result.paidByWeek, [750, 750, 750, 750])
+    }
+
+    func testWeekOffDoesNotLowerWeeklySpending() {
+        let result = context([paycheck(750, hours: 30, day: 0), paycheck(750, hours: 30, day: 14)], day: 15)
+        XCTAssertEqual(result.spendingWeek.baseWeekly, 45, accuracy: 0.01)
+    }
+
+    func testOddJobInTheSchoolYearIsOtherPay() {
+        let result = context([paycheck(750, hours: 30, day: 0), paycheck(100, hours: 5, day: 150)], day: 150)
+        XCTAssertEqual(result.paidByWeek, [750])
+        XCTAssertEqual(result.otherPay, 100, accuracy: 0.01)
+    }
+
+    func testLastPaycheckAfterTheJobEndsStillCounts() {
+        XCTAssertEqual(context([paycheck(750, hours: 30, day: 12 * 7 + 4)], day: 90).otherPay, 0, accuracy: 0.01)
+    }
+
+    func testChangingWeeksInAWhatIfKeepsTheStartDate() {
+        let plan = plan()
+        plan.usesSeasonDates = true
+        plan.seasonStart = start
+        var draft = plan.inputs
+        draft.weeksOfWork = 10
+        plan.applyWhatIf(draft)
+        XCTAssertEqual(plan.jobStartDate, start)
     }
 }

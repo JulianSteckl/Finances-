@@ -53,6 +53,10 @@ struct OverviewView: View {
     private func weekLabel(_ context: MoneyContext) -> String {
         let summerWeeks = Int(context.inputs.weeksOfWork.rounded(.up))
         let week = context.currentWeek
+        if week == 0 {
+            guard let jobStart = context.jobStart else { return "Job start date not set" }
+            return "Summer job starts \(jobStart.formatted(.dateTime.month(.abbreviated).day()))"
+        }
         return week <= summerWeeks
             ? "Week \(week) of \(summerWeeks) · summer job"
             : "Week \(week) of 52 · school year"
@@ -66,9 +70,10 @@ struct OverviewView: View {
         let week = context.spendingWeek
         return TileGridLayout {
             KPITile(label: "Projected at week 52", value: MoneyFormat.whole(context.savedAndInvestedAtYearEnd), progress: 1)
-            KPITile(label: "Earned this summer", value: MoneyFormat.whole(ledger.earned),
-                    progress: yearPlan.jobTotal > 0 ? ledger.earned / yearPlan.jobTotal : 0,
-                    footnote: "\(percent(ledger.earned, of: yearPlan.jobTotal)) of \(MoneyFormat.whole(yearPlan.jobTotal)) plan")
+            KPITile(label: "Earned so far", value: MoneyFormat.whole(ledger.earned),
+                    progress: yearPlan.jobTotal > 0 ? context.jobPay / yearPlan.jobTotal : 0,
+                    footnote: "Job: \(percent(context.jobPay, of: yearPlan.jobTotal)) of \(MoneyFormat.whole(yearPlan.jobTotal))"
+                        + (context.otherPay > 0 ? " · Other \(MoneyFormat.whole(context.otherPay))" : ""))
             KPITile(label: "Saved + invested", value: MoneyFormat.whole(savings + stocks),
                     progress: savedGoal > 0 ? (savings + stocks) / savedGoal : 0, tint: Bucket.savings.color,
                     footnote: "Savings \(MoneyFormat.whole(savings)) · Stocks \(MoneyFormat.whole(stocks))")
@@ -448,7 +453,7 @@ struct BucketsVsPlanCard: View {
         let tiles = Bucket.allCases.map { Tile(bucket: $0, actual: context.ledger.balance(of: $0), planned: context.plannedBalance(of: $0)) }
         let onTrack = tiles.filter { $0.status == .onTrack }.count
         return VStack(alignment: .leading, spacing: 12) {
-            CardTitle(title: "Buckets vs plan", trailing: "\(onTrack) of \(tiles.count) on track · week \(context.currentWeek)")
+            CardTitle(title: "Buckets vs plan", trailing: "\(onTrack) of \(tiles.count) on track · \(context.currentWeek == 0 ? "before job" : "week \(context.currentWeek)")")
             VStack(spacing: Self.tileSpacing) {
                 HStack(spacing: Self.tileSpacing) {
                     tile(tiles[0])
