@@ -36,6 +36,9 @@
 		A10100000000000000000013 /* QuickLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000013 /* QuickLogView.swift */; };
 		A1020000000000000000000A /* QuickLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000012 /* QuickLog.swift */; };
 		A1020000000000000000000B /* QuickLogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10200000000000000000003 /* QuickLogTests.swift */; };
+		A10100000000000000000014 /* AutoAllowance.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000014 /* AutoAllowance.swift */; };
+		A1020000000000000000000C /* AutoAllowance.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000014 /* AutoAllowance.swift */; };
+		A1020000000000000000000D /* AutoAllowanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10200000000000000000004 /* AutoAllowanceTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -63,6 +66,8 @@
 		B10100000000000000000012 /* QuickLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickLog.swift; sourceTree = "<group>"; };
 		B10100000000000000000013 /* QuickLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickLogView.swift; sourceTree = "<group>"; };
 		B10200000000000000000003 /* QuickLogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickLogTests.swift; sourceTree = "<group>"; };
+		B10100000000000000000014 /* AutoAllowance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoAllowance.swift; sourceTree = "<group>"; };
+		B10200000000000000000004 /* AutoAllowanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoAllowanceTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -137,6 +142,7 @@
 				B1010000000000000000000A /* CurrencyFormat.swift */,
 				B1010000000000000000000B /* SeedData.swift */,
 				B10100000000000000000012 /* QuickLog.swift */,
+				B10100000000000000000014 /* AutoAllowance.swift */,
 				B10100000000000000000011 /* Theme.swift */,
 				B10100000000000000000010 /* Ledger.swift */,
 				B1010000000000000000000F /* PlanMath.swift */,
@@ -150,6 +156,7 @@
 				B10200000000000000000001 /* PlanMathTests.swift */,
 				B10200000000000000000002 /* MoneyContextTests.swift */,
 				B10200000000000000000003 /* QuickLogTests.swift */,
+				B10200000000000000000004 /* AutoAllowanceTests.swift */,
 			);
 			path = FinancesTests;
 			sourceTree = "<group>";
@@ -255,6 +262,7 @@
 				A1010000000000000000000F /* PlanMath.swift in Sources */,
 				A1010000000000000000000E /* Bucket.swift in Sources */,
 				A10100000000000000000012 /* QuickLog.swift in Sources */,
+				A10100000000000000000014 /* AutoAllowance.swift in Sources */,
 				A10100000000000000000013 /* QuickLogView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -267,6 +275,8 @@
 				A10200000000000000000002 /* MoneyContextTests.swift in Sources */,
 				A1020000000000000000000A /* QuickLog.swift in Sources */,
 				A1020000000000000000000B /* QuickLogTests.swift in Sources */,
+				A1020000000000000000000C /* AutoAllowance.swift in Sources */,
+				A1020000000000000000000D /* AutoAllowanceTests.swift in Sources */,
 				A10200000000000000000003 /* IncomePlan.swift in Sources */,
 				A10200000000000000000004 /* BudgetCategory.swift in Sources */,
 				A10200000000000000000005 /* MoneyEntry.swift in Sources */,

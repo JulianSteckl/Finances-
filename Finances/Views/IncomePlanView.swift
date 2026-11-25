@@ -30,6 +30,8 @@ struct IncomePlanView: View {
 
     // Year budget (rates are edited as percents)
     @State private var allowancePerWeek: Double = 15
+    @State private var logsAllowance = false
+    @State private var allowanceWeekday = Self.friday
     @State private var spendingPerWeek: Double = 45
     @State private var gasPerTwoWeeks: Double = 50
     @State private var savingsGoal: Double = 1600
@@ -39,6 +41,7 @@ struct IncomePlanView: View {
     @State private var savingsReturnPercent: Double = 2
 
     private static let percentScale: Double = 100
+    private static let friday = 6
 
     /// Weeks used for every calculation: derived from the dates when enabled, otherwise typed in.
     private var effectiveWeeks: Double {
@@ -221,6 +224,18 @@ struct IncomePlanView: View {
         GroupBox("Year budget") {
             VStack(alignment: .leading, spacing: 14) {
                 moneyField("Allowance per week", value: $allowancePerWeek)
+                Toggle("Log my allowance automatically", isOn: $logsAllowance)
+                if logsAllowance {
+                    labeledField("Allowance day") {
+                        Picker("", selection: $allowanceWeekday) {
+                            ForEach(Array(Calendar.current.weekdaySymbols.enumerated()), id: \.offset) { index, name in
+                                Text(name).tag(index + 1)
+                            }
+                        }
+                        .labelsHidden()
+                        .frame(maxWidth: 180)
+                    }
+                }
                 moneyField("Spending per week", value: $spendingPerWeek)
                 moneyField("Gas every two weeks", value: $gasPerTwoWeeks)
                 moneyField("Savings goal", value: $savingsGoal)
@@ -361,6 +376,8 @@ struct IncomePlanView: View {
         useOverride = plan.usesOverride
         totalTargetOverride = plan.totalTargetOverride
         allowancePerWeek = plan.allowancePerWeek
+        logsAllowance = plan.allowanceWeekday != nil
+        allowanceWeekday = plan.allowanceWeekday ?? Self.friday
         spendingPerWeek = plan.spendingPerWeek
         gasPerTwoWeeks = plan.gasPerTwoWeeks
         savingsGoal = plan.savingsGoal
@@ -401,6 +418,11 @@ struct IncomePlanView: View {
         assign(\.oneTimeBonuses, oneTimeBonuses.clampedNonNegative)
         assign(\.totalTargetOverride, useOverride ? totalTargetOverride.clampedNonNegative : 0)
         assign(\.allowancePerWeek, allowancePerWeek.clampedNonNegative)
+        let weekday = logsAllowance ? allowanceWeekday : nil
+        if target.allowanceWeekday != weekday {
+            target.setAllowance(weekday: weekday)
+            changed = true
+        }
         assign(\.spendingPerWeek, spendingPerWeek.clampedNonNegative)
         assign(\.gasPerTwoWeeks, gasPerTwoWeeks.clampedNonNegative)
         assign(\.savingsGoal, savingsGoal.clampedNonNegative)
@@ -412,5 +434,6 @@ struct IncomePlanView: View {
         guard changed || plan == nil else { return }
         target.updatedAt = .now
         modelContext.saveChanges()
+        AutoAllowance.run(in: modelContext)
     }
 }

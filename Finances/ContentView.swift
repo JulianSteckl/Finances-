@@ -51,6 +51,7 @@ struct ContentView: View {
         .tint(Theme.ink)
         .onAppear {
             SeedData.ensureDefaults(in: modelContext)
+            AutoAllowance.run(in: modelContext)
         }
     }
 

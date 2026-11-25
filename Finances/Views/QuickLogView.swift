@@ -4,6 +4,7 @@ import SwiftUI
 
 /// The menu bar item: what's left to spend this week, in whole dollars.
 struct MenuBarLabel: View {
+    @Environment(\.modelContext) private var modelContext
     @Query private var plans: [IncomePlan]
     @Query private var entries: [MoneyEntry]
     /// Refreshed when the day changes, so a new week shows up without opening the app.
@@ -17,8 +18,11 @@ struct MenuBarLabel: View {
             Text(text)
         }
         .accessibilityLabel("Finances, \(text) left to spend this week")
+        // Also covers launching without the main window.
+        .onAppear { AutoAllowance.run(in: modelContext) }
         .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged).receive(on: RunLoop.main)) { _ in
             now = .now
+            AutoAllowance.run(in: modelContext)
         }
     }
 }

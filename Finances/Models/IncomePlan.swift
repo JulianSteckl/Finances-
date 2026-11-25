@@ -64,6 +64,10 @@ final class IncomePlan {
     var savingsReturn: Double = 0.02
     /// First day of the summer job when it's typed in on its own, without an end date.
     var jobStart: Date?
+    /// Day of the week the allowance is logged by itself (1 = Sunday), or nil when it's off.
+    var allowanceWeekday: Int?
+    /// Last day already checked for an allowance, so no day is logged twice.
+    var allowanceLoggedThrough: Date?
 
     init(
         hoursPerWeek: Double = 29.5,
@@ -146,6 +150,14 @@ final class IncomePlan {
         savingsGoal = draft.savingsGoal
         stockReturn = draft.stockReturn
         updatedAt = .now
+    }
+
+    /// Turns the automatic allowance on, off, or to another day. Turning it on starts from today.
+    func setAllowance(weekday: Int?, now: Date = .now, calendar: Calendar = .current) {
+        if allowanceWeekday == nil, weekday != nil {
+            allowanceLoggedThrough = calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: now))
+        }
+        allowanceWeekday = weekday
     }
 
     /// First day of the summer job, if it's known. Pay before it counts as odd jobs, not as weeks of work.
