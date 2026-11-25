@@ -36,7 +36,7 @@ struct FinancesApp: App {
     }
 
     var body: some Scene {
-        WindowGroup {
+        WindowGroup(id: QuickLogView.mainWindowID) {
             ContentView()
                 .alert("Your saved data couldn't be opened", isPresented: $showingStorageError) {
                     Button("OK", role: .cancel) {}
@@ -46,5 +46,14 @@ struct FinancesApp: App {
         }
         .modelContainer(container)
         .defaultSize(width: 1180, height: 820)
+
+        MenuBarExtra {
+            QuickLogView()
+                .modelContainer(container)
+        } label: {
+            MenuBarLabel()
+                .modelContainer(container)
+        }
+        .menuBarExtraStyle(.window)
     }
 }

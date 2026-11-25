@@ -3,13 +3,16 @@ import OSLog
 import SwiftData
 
 extension ModelContext {
-    /// Saves pending changes, logging instead of silently dropping a failure.
-    func saveChanges() {
+    /// Saves pending changes, logging instead of silently dropping a failure. Returns whether it worked.
+    @discardableResult
+    func saveChanges() -> Bool {
         do {
             try save()
+            return true
         } catch {
             Logger(subsystem: "Finances", category: "Storage").error("Save failed: \(error.localizedDescription)")
             assertionFailure("Save failed: \(error)")
+            return false
         }
     }
 }

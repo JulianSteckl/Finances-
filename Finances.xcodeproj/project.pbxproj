@@ -32,6 +32,10 @@
 		A10200000000000000000007 /* PlanMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1010000000000000000000F /* PlanMath.swift */; };
 		A10200000000000000000008 /* Ledger.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000010 /* Ledger.swift */; };
 		A10200000000000000000009 /* CurrencyFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1010000000000000000000A /* CurrencyFormat.swift */; };
+		A10100000000000000000012 /* QuickLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000012 /* QuickLog.swift */; };
+		A10100000000000000000013 /* QuickLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000013 /* QuickLogView.swift */; };
+		A1020000000000000000000A /* QuickLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10100000000000000000012 /* QuickLog.swift */; };
+		A1020000000000000000000B /* QuickLogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10200000000000000000003 /* QuickLogTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -56,6 +60,9 @@
 		B10200000000000000000001 /* PlanMathTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanMathTests.swift; sourceTree = "<group>"; };
 		B10200000000000000000002 /* MoneyContextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoneyContextTests.swift; sourceTree = "<group>"; };
 		C10200000000000000000001 /* FinancesTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FinancesTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B10100000000000000000012 /* QuickLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickLog.swift; sourceTree = "<group>"; };
+		B10100000000000000000013 /* QuickLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickLogView.swift; sourceTree = "<group>"; };
+		B10200000000000000000003 /* QuickLogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickLogTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -119,6 +126,7 @@
 				B10100000000000000000007 /* IncomePlanView.swift */,
 				B10100000000000000000008 /* YearPlanView.swift */,
 				B10100000000000000000009 /* PaychecksView.swift */,
+				B10100000000000000000013 /* QuickLogView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -128,6 +136,7 @@
 			children = (
 				B1010000000000000000000A /* CurrencyFormat.swift */,
 				B1010000000000000000000B /* SeedData.swift */,
+				B10100000000000000000012 /* QuickLog.swift */,
 				B10100000000000000000011 /* Theme.swift */,
 				B10100000000000000000010 /* Ledger.swift */,
 				B1010000000000000000000F /* PlanMath.swift */,
@@ -140,6 +149,7 @@
 			children = (
 				B10200000000000000000001 /* PlanMathTests.swift */,
 				B10200000000000000000002 /* MoneyContextTests.swift */,
+				B10200000000000000000003 /* QuickLogTests.swift */,
 			);
 			path = FinancesTests;
 			sourceTree = "<group>";
@@ -244,6 +254,8 @@
 				A10100000000000000000010 /* Ledger.swift in Sources */,
 				A1010000000000000000000F /* PlanMath.swift in Sources */,
 				A1010000000000000000000E /* Bucket.swift in Sources */,
+				A10100000000000000000012 /* QuickLog.swift in Sources */,
+				A10100000000000000000013 /* QuickLogView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -253,6 +265,8 @@
 			files = (
 				A10200000000000000000001 /* PlanMathTests.swift in Sources */,
 				A10200000000000000000002 /* MoneyContextTests.swift in Sources */,
+				A1020000000000000000000A /* QuickLog.swift in Sources */,
+				A1020000000000000000000B /* QuickLogTests.swift in Sources */,
 				A10200000000000000000003 /* IncomePlan.swift in Sources */,
 				A10200000000000000000004 /* BudgetCategory.swift in Sources */,
 				A10200000000000000000005 /* MoneyEntry.swift in Sources */,

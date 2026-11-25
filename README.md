@@ -35,6 +35,8 @@ Black-and-white design with light and dark mode. Money goes into four buckets: *
 | **Year plan** | What-if sliders (pay, hours, weeks, spending, savings goal, stock return), where the year's money goes, and stocks over 5 years. Save a what-if as your plan. |
 | **Plan settings** | Season dates, pay schedule, overtime, tips, bonuses, target override, and the year budget (allowance, spending, gas, savings goal, starting money, tax, returns). Saves when you leave the screen. |
 
+**Menu bar quick log:** while the app is running, the menu bar shows what's left to spend this week. Click it to log a purchase, gas or allowance.
+
 The sidebar shows each bucket's balance: money moved in from the checklist (or allowance), minus spending and gas.
 
 Data is stored locally with **SwiftData** (no account or server).
