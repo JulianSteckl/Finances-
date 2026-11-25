@@ -16,11 +16,11 @@ struct PaychecksView: View {
                     .appearEffect(order: 0)
                 // The form keeps its own state, so typing only redraws the form and its split preview.
                 NewEntrySection(
-                    inputs: context.inputs, yearPlan: context.yearPlan,
+                    inputs: context.inputs, yearPlan: context.yearPlan, entries: ledger.entries,
                     spendingLeft: context.spendingWeek.left, gasBalance: ledger.balance(of: .gas)
                 )
                 .appearEffect(order: 1)
-                LogCard(entries: ledger.entries) { pendingDelete = $0 }
+                LogCard(entries: ledger.entries, onCategory: setCategory) { pendingDelete = $0 }
                     .appearEffect(order: 2)
                 SummerPayCard(context: context)
                     .appearEffect(order: 3)
@@ -38,6 +38,11 @@ struct PaychecksView: View {
         } message: { _ in
             Text("This can't be undone.")
         }
+    }
+
+    private func setCategory(_ entry: MoneyEntry, _ category: SpendingCategory?) {
+        entry.spendingCategory = category
+        modelContext.saveChanges()
     }
 
     private func delete(_ entry: MoneyEntry) {
@@ -58,6 +63,7 @@ struct NewEntrySection: View {
     @Environment(\.modelContext) private var modelContext
     let inputs: PlanInputs
     let yearPlan: YearPlan
+    let entries: [MoneyEntry]
     let spendingLeft: Double
     let gasBalance: Double
 
@@ -66,6 +72,9 @@ struct NewEntrySection: View {
     @State private var hours: Double = 0
     @State private var date: Date = .now
     @State private var note = ""
+    @State private var category: SpendingCategory?
+    /// Once picked by hand, typing a name no longer changes it.
+    @State private var pickedCategory = false
 
     var body: some View {
         ResponsiveRow(leadingWeight: 0.9) {
@@ -85,6 +94,9 @@ struct NewEntrySection: View {
             .pickerStyle(.segmented)
             .labelsHidden()
             .onChange(of: kind) { _, _ in resetAmount() }
+            .onChange(of: note) { _, newNote in
+                if !pickedCategory { category = SpendingCategory.suggested(for: newNote, from: entries) }
+            }
 
             Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 12) {
                 GridRow {
@@ -100,6 +112,11 @@ struct NewEntrySection: View {
                 GridRow {
                     field("Date") {
                         DatePicker("Date", selection: $date, displayedComponents: .date).labelsHidden()
+                    }
+                    if kind == .spending {
+                        field("Category") {
+                            CategoryPicker(category: Binding(get: { category }, set: { category = $0; pickedCategory = true }))
+                        }
                     }
                 }
             }
@@ -141,7 +158,8 @@ struct NewEntrySection: View {
             date: date,
             note: kind == .paycheck ? "" : note.trimmingCharacters(in: .whitespacesAndNewlines),
             kind: kind,
-            hours: kind == .paycheck ? max(0, hours) : 0
+            hours: kind == .paycheck ? max(0, hours) : 0,
+            spendingCategory: category
         )
         modelContext.insert(entry)
         modelContext.saveChanges()
@@ -150,6 +168,8 @@ struct NewEntrySection: View {
 
     private func resetDraft() {
         note = ""
+        category = nil
+        pickedCategory = false
         date = .now
         hours = inputs.hoursPerWeek
         resetAmount()
@@ -203,6 +223,7 @@ struct SplitPreviewCard: View {
 /// The full log, filtered, searchable and folded by month so it stays short as it grows.
 struct LogCard: View {
     let entries: [MoneyEntry]
+    let onCategory: (MoneyEntry, SpendingCategory?) -> Void
     let onDelete: (MoneyEntry) -> Void
 
     @State private var filter: LogFilter = .all
@@ -252,7 +273,7 @@ struct LogCard: View {
         return entries.filter { entry in
             guard filter.matches(entry.kind) else { return false }
             guard !query.isEmpty else { return true }
-            let haystack = [entry.title, entry.kind.label, entry.bucket?.name ?? "", MoneyFormat.string(entry.amount),
+            let haystack = [entry.title, entry.kind.label, entry.bucket?.name ?? "", entry.spendingCategory?.name ?? "", MoneyFormat.string(entry.amount),
                             entry.date.formatted(date: .abbreviated, time: .omitted)].joined(separator: " ").lowercased()
             return haystack.contains(query)
         }
@@ -368,7 +389,7 @@ struct LogCard: View {
         VStack(spacing: 0) {
             Divider()
             HStack(spacing: 8) {
-                EntryRow(entry: entry)
+                EntryRow(entry: entry) { onCategory(entry, $0) }
                 Button {
                     onDelete(entry)
                 } label: {

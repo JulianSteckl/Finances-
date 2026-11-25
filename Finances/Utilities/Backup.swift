@@ -47,6 +47,7 @@ struct Backup: Codable, Equatable {
         var bucketRaw: String?
         var hours: Double
         var linkedPaycheckID: UUID?
+        var spendingCategoryRaw: String?
     }
 
     enum Problem: LocalizedError {
@@ -163,7 +164,8 @@ extension Backup.Entry {
     init(_ entry: MoneyEntry) {
         self.init(
             amount: entry.amount, date: entry.date, note: entry.note, kindRaw: entry.kindRaw, createdAt: entry.createdAt,
-            entryID: entry.entryID, bucketRaw: entry.bucketRaw, hours: entry.hours, linkedPaycheckID: entry.linkedPaycheckID
+            entryID: entry.entryID, bucketRaw: entry.bucketRaw, hours: entry.hours, linkedPaycheckID: entry.linkedPaycheckID,
+            spendingCategoryRaw: entry.spendingCategoryRaw
         )
     }
 
@@ -180,6 +182,7 @@ extension Backup.Entry {
         )
         entry.bucketRaw = bucketRaw
         entry.entryID = entryID
+        entry.spendingCategoryRaw = spendingCategoryRaw
         return entry
     }
 }
@@ -188,14 +191,14 @@ extension Backup.Entry {
 
 /// The log as a spreadsheet file, newest first.
 enum LogExport {
-    private static let header = "Date,Type,Description,Bucket,Amount,Hours"
+    private static let header = "Date,Type,Description,Category,Bucket,Amount,Hours"
     /// Lets Excel read accents and symbols correctly.
     private static let byteOrderMark = "\u{FEFF}"
     private static let formulaStarts: Set<Character> = ["=", "+", "-", "@", "\t", "\r"]
 
     static func csv(_ entries: [MoneyEntry], calendar: Calendar = .current) -> String {
         let rows = entries.sorted { $0.date > $1.date }.map { entry in
-            [day(entry.date, calendar: calendar), entry.kind.label, cell(entry.title), entry.bucket?.name ?? "",
+            [day(entry.date, calendar: calendar), entry.kind.label, cell(entry.title), entry.spendingCategory?.name ?? "", entry.bucket?.name ?? "",
              number(signedAmount(entry)), entry.hours > 0 ? number(entry.hours) : ""].joined(separator: ",")
         }
         return byteOrderMark + ([header] + rows).joined(separator: "\r\n") + "\r\n"

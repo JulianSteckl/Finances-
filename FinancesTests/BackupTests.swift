@@ -25,7 +25,7 @@ final class BackupTests: XCTestCase {
         let paycheck = MoneyEntry(amount: 590.25, date: date, kind: .paycheck, hours: 29.5, createdAt: date)
         context.insert(paycheck)
         context.insert(MoneyEntry(amount: 100, date: date, kind: .transfer, bucket: .stocks, linkedPaycheckID: paycheck.entryID, createdAt: date))
-        context.insert(MoneyEntry(amount: 12.5, date: date, note: "Lunch, \"big\"", kind: .spending, createdAt: date))
+        context.insert(MoneyEntry(amount: 12.5, date: date, note: "Lunch, \"big\"", kind: .spending, spendingCategory: .food, createdAt: date))
     }
 
     private func sorted(_ backup: Backup) -> [Backup.Entry] { backup.entries.sorted { $0.amount < $1.amount } }
@@ -72,6 +72,14 @@ final class BackupTests: XCTestCase {
         context.insert(MoneyEntry(amount: 999, kind: .spending))
         try backup.restore(into: context)
         XCTAssertEqual(sorted(try Backup(context: context)), sorted(backup))
+    }
+
+    func testBackupsFromBeforeCategoriesStillOpen() throws {
+        addSampleData()
+        let text = String(decoding: try Backup(context: context).data(), as: UTF8.self)
+            .components(separatedBy: "\n").filter { !$0.contains("spendingCategoryRaw") }.joined(separator: "\n")
+            .replacingOccurrences(of: #",(\s*[}\]])"#, with: "$1", options: .regularExpression)
+        XCTAssertEqual(try Backup(data: Data(text.utf8)).entries.count, 3)
     }
 
     func testRestoreKeepsOnePlan() throws {
@@ -121,7 +129,7 @@ final class BackupTests: XCTestCase {
 
     func testPurchaseRow() {
         let day = Calendar.current.date(from: DateComponents(year: 2026, month: 11, day: 24, hour: 12))!
-        XCTAssertEqual(rows([MoneyEntry(amount: 12.5, date: day, note: "Lunch", kind: .spending)])[1], "2026-11-24,Spending,\"Lunch\",Spending,-12.50,")
+        XCTAssertEqual(rows([MoneyEntry(amount: 12.5, date: day, note: "Lunch", kind: .spending, spendingCategory: .food)])[1], "2026-11-24,Spending,\"Lunch\",Food,Spending,-12.50,")
     }
 
     func testCommasAndQuotesSurvive() {

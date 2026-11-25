@@ -635,8 +635,24 @@ struct WeeklyPayCard: View {
     }
 }
 
+/// Picks what a purchase was for.
+struct CategoryPicker: View {
+    @Binding var category: SpendingCategory?
+
+    var body: some View {
+        Picker("Category", selection: $category) {
+            Text(SpendingCategory.missingName).tag(SpendingCategory?.none)
+            ForEach(SpendingCategory.allCases) { Text($0.name).tag(Optional($0)) }
+        }
+        .labelsHidden()
+        .fixedSize()
+    }
+}
+
 struct EntryRow: View {
     let entry: MoneyEntry
+    /// When set, purchases show a menu to change their category.
+    var onCategory: ((SpendingCategory?) -> Void)?
 
     var body: some View {
         HStack(spacing: 12) {
@@ -645,10 +661,13 @@ struct EntryRow: View {
                 .frame(width: 22)
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.title).fontWeight(.medium)
-                Text(entry.date.formatted(date: .abbreviated, time: .omitted))
-                    .font(.caption).foregroundStyle(Theme.muted)
+                Text(subtitle).font(.caption).foregroundStyle(Theme.muted)
             }
             Spacer()
+            if let onCategory, entry.kind == .spending {
+                CategoryPicker(category: Binding(get: { entry.spendingCategory }, set: onCategory))
+                    .frame(width: 130, alignment: .trailing)
+            }
             if let bucket = entry.bucket {
                 HStack(spacing: 6) {
                     BucketDot(bucket: bucket)
@@ -662,6 +681,12 @@ struct EntryRow: View {
                 .frame(width: 100, alignment: .trailing)
         }
         .padding(.vertical, 8)
+    }
+
+    private var subtitle: String {
+        let day = entry.date.formatted(date: .abbreviated, time: .omitted)
+        guard onCategory == nil, let category = entry.spendingCategory else { return day }
+        return "\(day) · \(category.name)"
     }
 
     private var amountText: String {

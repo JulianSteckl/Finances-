@@ -4,6 +4,7 @@ import SwiftData
 enum AppSection: String, CaseIterable, Identifiable {
     case overview
     case paychecks
+    case trends
     case yearPlan
     case settings
 
@@ -13,6 +14,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         switch self {
         case .overview: "Overview"
         case .paychecks: "Paychecks & log"
+        case .trends: "Trends"
         case .yearPlan: "Year plan"
         case .settings: "Plan settings"
         }
@@ -22,6 +24,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         switch self {
         case .overview: "square.grid.2x2"
         case .paychecks: "banknote"
+        case .trends: "chart.bar"
         case .yearPlan: "chart.line.uptrend.xyaxis"
         case .settings: "slider.horizontal.3"
         }
@@ -89,6 +92,8 @@ struct ContentView: View {
             OverviewView(plan: plan, ledger: ledger) { section = .paychecks }
         case .paychecks:
             PaychecksView(plan: plan, ledger: ledger)
+        case .trends:
+            TrendsView(plan: plan, ledger: ledger)
         case .yearPlan:
             YearPlanView(plan: plan)
         case .settings:

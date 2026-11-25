@@ -55,6 +55,8 @@ final class MoneyEntry {
     var hours: Double = 0
     /// For transfers: the paycheck this money was moved from.
     var linkedPaycheckID: UUID?
+    /// For purchases: what it was for.
+    var spendingCategoryRaw: String?
 
     init(
         amount: Double,
@@ -64,6 +66,7 @@ final class MoneyEntry {
         bucket: Bucket? = nil,
         hours: Double = 0,
         linkedPaycheckID: UUID? = nil,
+        spendingCategory: SpendingCategory? = nil,
         createdAt: Date = .now
     ) {
         self.amount = amount
@@ -73,6 +76,7 @@ final class MoneyEntry {
         self.bucketRaw = bucket?.rawValue
         self.hours = hours
         self.linkedPaycheckID = linkedPaycheckID
+        self.spendingCategoryRaw = kind == .spending ? spendingCategory?.rawValue : nil
         self.createdAt = createdAt
     }
 
@@ -89,6 +93,11 @@ final class MoneyEntry {
         case .gas: .gas
         case .transfer: bucketRaw.flatMap(Bucket.init(rawValue:))
         }
+    }
+
+    var spendingCategory: SpendingCategory? {
+        get { spendingCategoryRaw.flatMap(SpendingCategory.init(rawValue:)) }
+        set { spendingCategoryRaw = newValue?.rawValue }
     }
 
     var isIncome: Bool { kind.isIncome }

@@ -40,6 +40,8 @@ struct QuickLogView: View {
     @State private var kind: EntryKind = .spending
     @State private var amountText = ""
     @State private var note = ""
+    @State private var category: SpendingCategory?
+    @State private var pickedCategory = false
     @State private var lastSaved: Saved?
     @State private var saveFailed = false
     @FocusState private var focus: Field?
@@ -99,9 +101,19 @@ struct QuickLogView: View {
                 amountText = newKind == .allowance ? MoneyFormat.string(context.inputs.allowancePerWeek) : ""
                 focus = .amount
             }
+            .onChange(of: note) { _, newNote in
+                if !pickedCategory { category = SpendingCategory.suggested(for: newNote, from: entries) }
+            }
             field("Amount", text: $amountText, field: .amount)
             if kind != .allowance {
                 field(kind == .gas ? "Where?" : "What was it?", text: $note, field: .note)
+            }
+            if kind == .spending {
+                HStack {
+                    Text("Category").foregroundStyle(Theme.muted)
+                    Spacer()
+                    CategoryPicker(category: Binding(get: { category }, set: { category = $0; pickedCategory = true }))
+                }
             }
             Button(action: save) {
                 Text(amount.map { "Log \(MoneyFormat.string($0))" } ?? "Log").frame(maxWidth: .infinity)
@@ -154,7 +166,7 @@ struct QuickLogView: View {
             focus = .amount
             return
         }
-        let entry = QuickLog.entry(kind: kind, amount: amount, note: kind == .allowance ? "" : note)
+        let entry = QuickLog.entry(kind: kind, amount: amount, note: kind == .allowance ? "" : note, category: category)
         modelContext.insert(entry)
         guard modelContext.saveChanges() else {
             modelContext.delete(entry)
@@ -167,6 +179,8 @@ struct QuickLogView: View {
         }
         amountText = ""
         note = ""
+        category = nil
+        pickedCategory = false
         focus = .amount
     }
 

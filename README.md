@@ -32,6 +32,7 @@ Black-and-white design with light and dark mode. Money goes into four buckets: *
 |------|----------|
 | **Overview** | Saved + invested, earned so far, projected total at week 52, and money left to spend this week. Year outlook chart for all four buckets, weekly pay chart, spending ring, "Move your money" checklist for the latest paycheck, and recent activity. |
 | **Paychecks & log** | Log paychecks (with hours), spending, gas and allowance. Live split preview, pay forecast chart, and the full log with delete confirmation. |
+| **Trends** | Spending by week against the weekly amount, where it goes by category, and by day, over 4, 12 or 26 weeks. |
 | **Year plan** | What-if sliders (pay, hours, weeks, spending, savings goal, stock return), where the year's money goes, and stocks over 5 years. Save a what-if as your plan. |
 | **Plan settings** | Season dates, pay schedule, overtime, tips, bonuses, target override, and the year budget (allowance, spending, gas, savings goal, starting money, tax, returns). Saves when you leave the screen. |
 

@@ -24,7 +24,7 @@ enum QuickLog {
         return MoneyFormat.whole(dollars == 0 ? 0 : dollars)
     }
 
-    static func entry(kind: EntryKind, amount: Double, note: String, now: Date = .now) -> MoneyEntry {
-        MoneyEntry(amount: amount, date: now, note: note.trimmingCharacters(in: .whitespacesAndNewlines), kind: kind)
+    static func entry(kind: EntryKind, amount: Double, note: String, category: SpendingCategory? = nil, now: Date = .now) -> MoneyEntry {
+        MoneyEntry(amount: amount, date: now, note: note.trimmingCharacters(in: .whitespacesAndNewlines), kind: kind, spendingCategory: category)
     }
 }
