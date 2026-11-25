@@ -357,7 +357,7 @@ struct SpendingWeekCard: View {
                 .animation(Motion.smooth, value: fraction)
             VStack(spacing: 0) {
                 Text(MoneyFormat.string(week.left)).font(.system(size: 20, weight: .bold)).monospacedDigit().animatedNumber(week.left)
-                Text("left of \(MoneyFormat.string(week.available))").font(.caption2).foregroundStyle(Theme.muted).animatedNumber(week.available)
+                Text(week.isLimitedByBucket ? "left in bucket" : "left of \(MoneyFormat.string(week.available))").font(.caption2).foregroundStyle(Theme.muted).animatedNumber(week.available)
             }
         }
         .frame(width: Self.ringSize, height: Self.ringSize)
@@ -373,7 +373,7 @@ struct SpendingWeekCard: View {
             let spent = purchases.filter { calendar.isDate($0.date, inSameDayAs: date) }.reduce(0) { $0 + $1.amount }
             return Day(date: date, spent: spent, isToday: calendar.isDate(date, inSameDayAs: today))
         }
-        let dailyShare = week.available / Double(Self.daysPerWeek)
+        let dailyShare = max(0, week.available) / Double(Self.daysPerWeek)
         let scaleMax = max(1, max(days.map(\.spent).max() ?? 0, dailyShare * 1.5))
         return VStack(alignment: .leading, spacing: 6) {
             ZStack(alignment: .bottom) {

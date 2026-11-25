@@ -82,4 +82,24 @@ final class MoneyContextTests: XCTestCase {
         let result = context((0..<11).map { _ in paycheck(750, hours: 30, day: 0) })
         XCTAssertEqual(result.paidByWeek.reduce(0, +), 8250, accuracy: 0.01)
     }
+
+    private func entry(_ kind: EntryKind, _ amount: Double, day: Int, bucket: Bucket? = nil) -> MoneyEntry {
+        let entry = MoneyEntry(amount: amount, date: calendar.date(byAdding: .day, value: day, to: start)!, kind: kind, bucket: bucket)
+        container.mainContext.insert(entry)
+        return entry
+    }
+
+    func testRolloverCannotExceedTheSpendingBucket() {
+        let entries = [paycheck(750, hours: 30, day: 0), entry(.transfer, 81, day: 0, bucket: .spending)]
+        XCTAssertEqual(context(entries, day: 8).spendingWeek.left, 81, accuracy: 0.01)
+    }
+
+    func testNothingMovedMeansNothingToSpend() {
+        XCTAssertEqual(context([paycheck(750, hours: 30, day: 0)]).spendingWeek.left, 0, accuracy: 0.01)
+    }
+
+    func testPurchaseIsOnlySubtractedOnce() {
+        let entries = [paycheck(750, hours: 30, day: 0), entry(.transfer, 30, day: 0, bucket: .spending), entry(.spending, 10, day: 1)]
+        XCTAssertEqual(context(entries, day: 2).spendingWeek.left, 20, accuracy: 0.01)
+    }
 }

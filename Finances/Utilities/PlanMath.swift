@@ -199,12 +199,19 @@ struct SpendingWeek {
     let weekEnd: Date
     /// Days left in this week, today included.
     let daysLeft: Int
+    /// Money really in the Spending bucket, after this week's purchases.
+    let bucketBalance: Double
 
-    var available: Double { baseWeekly + rolledOver }
-    var left: Double { available - spentThisWeek }
+    /// What the plan allows this week before looking at the bucket.
+    private var planLeft: Double { baseWeekly + rolledOver - spentThisWeek }
+    /// Never more than what's really in the bucket.
+    var left: Double { min(planLeft, bucketBalance) }
+    var available: Double { left + spentThisWeek }
+    var isLimitedByBucket: Bool { bucketBalance < planLeft - 0.005 }
 
     /// Weeks run in 7-day blocks from `start`, so they line up with the paycheck weeks.
-    init(purchases: [(date: Date, amount: Double)], start: Date, now: Date, baseWeekly: Double, calendar: Calendar = .current) {
+    init(purchases: [(date: Date, amount: Double)], start: Date, now: Date, baseWeekly: Double, bucketBalance: Double = .infinity,
+         calendar: Calendar = .current) {
         let startDay = calendar.startOfDay(for: start)
         let daysSinceStart = max(0, calendar.dateComponents([.day], from: startDay, to: now).day ?? 0)
         let weekIndex = daysSinceStart / 7
@@ -222,6 +229,7 @@ struct SpendingWeek {
         }
 
         self.baseWeekly = baseWeekly
+        self.bucketBalance = bucketBalance
         self.rolledOver = baseWeekly * Double(weekIndex) - spentBefore
         self.spentThisWeek = spentNow
         self.weekStart = weekStart

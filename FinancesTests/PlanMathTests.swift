@@ -145,6 +145,18 @@ final class SpendingWeekTests: XCTestCase {
     }
 
     func testDaysLeftCountsToday() { XCTAssertEqual(week([], now: 10).daysLeft, 4) }
+
+    private func week(spent: Double = 0, bucket: Double) -> SpendingWeek {
+        SpendingWeek(purchases: [(day(1), spent)], start: start, now: day(2), baseWeekly: 45, bucketBalance: bucket, calendar: calendar)
+    }
+
+    func testLeftStopsAtTheBucketBalance() { XCTAssertEqual(week(bucket: 30).left, 30, accuracy: 0.01) }
+    func testEmptyBucketLeavesNothing() { XCTAssertEqual(week(bucket: 0).left, 0, accuracy: 0.01) }
+    func testOverdrawnBucketShowsTheShortfall() { XCTAssertEqual(week(spent: 10, bucket: -10).left, -10, accuracy: 0.01) }
+    func testFullBucketKeepsThePlanAmount() { XCTAssertEqual(week(bucket: 500).left, 45, accuracy: 0.01) }
+    func testFullBucketIsNotLimited() { XCTAssertFalse(week(bucket: 500).isLimitedByBucket) }
+    func testLowBucketIsLimited() { XCTAssertTrue(week(bucket: 30).isLimitedByBucket) }
+    func testCappedWeekCountsWhatWasAlreadySpent() { XCTAssertEqual(week(spent: 10, bucket: 20).available, 30, accuracy: 0.01) }
 }
 
 final class PayForecastTests: XCTestCase {

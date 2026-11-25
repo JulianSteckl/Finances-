@@ -128,7 +128,8 @@ struct MoneyContext {
         self.incomeScale = incomeScale
         self.spendingWeek = SpendingWeek(
             purchases: ledger.purchases, start: start, now: now,
-            baseWeekly: yearPlan.weeklySpending(incomeScale: incomeScale), calendar: ledger.calendar
+            baseWeekly: yearPlan.weeklySpending(incomeScale: incomeScale),
+            bucketBalance: ledger.balance(of: .spending), calendar: ledger.calendar
         )
         self.projection = yearPlan.projection(paid: paidByWeek)
         self.stillToMove = yearPlan.stillToMove(earned: ledger.earned, movedTo: ledger.movedTo)
